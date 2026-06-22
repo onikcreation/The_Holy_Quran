@@ -1762,3 +1762,16 @@ body:not(.trans-lang-en) .ltg-btn[data-lang="bn"] {
 body.trans-lang-bn .ltg-btn[data-lang="bn"]:hover,
 body.trans-lang-en .ltg-btn[data-lang="en"]:hover,
 body:not(.trans-lang-en) .ltg-btn[data-lang="bn"]:hover { color: #fff; }
+
+/* ============================================================
+   34. TAFSIR SOURCE LABEL
+   ============================================================ */
+.tafsir-source-label {
+    font-size: 0.67rem;
+    font-weight: 600;
+    color: var(--text-sm);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+    opacity: 0.75;
+}

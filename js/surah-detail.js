@@ -181,14 +181,30 @@ function setTranslationLang(lang) {
 
 // -------------------------------------------------------
 // Bismillah stripping
-// AlQuran Cloud prepends Bismillah text to ayah 1 for surahs 2-8 and 10-114
+// AlQuran Cloud prepends Bismillah to ayah 1 for surahs 2-8 and 10-114.
+// The exact diacritics vary by API version so we normalise first.
 // -------------------------------------------------------
 function stripLeadingBismillah(text) {
-    // The Bismillah always ends with الرَّحِيمِ — find that and take text after it
-    const marker = 'الرَّحِيمِ';
-    const idx    = text.indexOf(marker);
-    if (idx !== -1) return text.slice(idx + marker.length).trim();
-    return text;
+    // Normalize: drop tashkeel + convert alef variants to plain alef
+    const norm = s => s
+        .replace(/[ؐ-ًؚ-ٰٟۖ-ۭ]/g, '') // diacritics
+        .replace(/[ٱآأإ]/g, 'ا');                 // alef variants
+
+    const normalised = norm(text);
+    // Base consonantal Bismillah
+    const bisRx = /^بسم\s*الله\s*الرحمن\s*الرحيم\s*/;
+    const m = normalised.match(bisRx);
+    if (!m) return text;
+
+    // Walk original string counting normalised characters until we reach m[0].length
+    const targetNormLen = m[0].length;
+    let origPos = 0, normCount = 0;
+    while (origPos < text.length && normCount < targetNormLen) {
+        const normCh = norm(text[origPos]);
+        normCount += normCh.length;
+        origPos++;
+    }
+    return text.slice(origPos).trim();
 }
 
 // -------------------------------------------------------
@@ -438,11 +454,11 @@ function renderAyahs() {
     }
 
     list.innerHTML = arAyahs.map((ayah, i) => {
-        const bnText   = surahData.bengali?.ayahs[i]?.text || '';
-        const enText   = getEnglishTransText(i);
-        const trText   = surahData.transliteration?.ayahs[i]?.text || '';
-        const bnTafsir = bnText; // Best available Bengali source
-        const enTafsir = surahData.tafsirJalalayn?.ayahs[i]?.text || enText;
+        const bnText    = surahData.bengali?.ayahs[i]?.text || '';
+        const enText    = getEnglishTransText(i);
+        const trText    = surahData.transliteration?.ayahs[i]?.text || '';
+        // Tafsir: always English Jalalayn — this is proper tafsir, different from the translation
+        const tafsirTxt = surahData.tafsirJalalayn?.ayahs[i]?.text || '';
         const bnNum    = toBengaliNumber(ayah.numberInSurah);
         const tafsirOpen = settings.autoExpandTafsir;
 
@@ -450,7 +466,7 @@ function renderAyahs() {
         const arabicText = (ayah.numberInSurah === 1 && currentSurahId !== 1 && currentSurahId !== 9)
             ? stripLeadingBismillah(ayah.text) : ayah.text;
 
-        const hasTafsir = bnTafsir || enTafsir;
+        const hasTafsir = Boolean(tafsirTxt);
 
         return `
         <div class="ayah-card" id="ayah-${ayah.numberInSurah}"
@@ -530,8 +546,8 @@ function renderAyahs() {
 
             ${hasTafsir ? `
             <div class="tafsir-panel${tafsirOpen ? '' : ' hidden'}" id="tafsir-${ayah.numberInSurah}">
-                ${bnTafsir ? `<p class="tafsir-text trans-lang-bn-text">${escapeHtml(bnTafsir)}</p>` : ''}
-                ${enTafsir ? `<p class="tafsir-text trans-lang-en-text">${escapeHtml(enTafsir)}</p>` : ''}
+                <div class="tafsir-source-label">Tafsir Al-Jalalayn</div>
+                <p class="tafsir-text">${escapeHtml(tafsirTxt)}</p>
             </div>` : ''}
 
         </div>`;
