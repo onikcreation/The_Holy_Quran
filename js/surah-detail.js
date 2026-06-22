@@ -1,7 +1,7 @@
 // ============================================================
-// surah-detail.js — v4.0
-// All features: sidebar search, para tab, goto, main tabs,
-// transliteration, settings, full-surah audio, তিলাওয়াত panel
+// surah-detail.js — v5.0
+// Sidebar dropdowns, audio player bar, tafsir toggle,
+// copy button, transliteration fix, Arabic font picker
 // ============================================================
 
 'use strict';
@@ -10,33 +10,30 @@
 // State
 // -------------------------------------------------------
 let currentSurahId  = 1;
-let surahData       = null;     // getSurahAllDataFull result
+let surahData       = null;
 let currentLang     = 'bn';
 let arabicFontSize  = 'md';
 let currentMainTab  = 'translation';
 
-// Audio
 let audioElement    = null;
 let playingGlobal   = null;
+let playingLocal    = null;
 let playingBtn      = null;
 let fullSurahMode   = false;
 let fullSurahIdx    = 0;
 
-// Sidebar search cache
-let allSurahsCache  = [];
-
-// Settings (persisted in localStorage)
 let settings = {
-    translationEdition:  'bn',   // 'bn' | 'en.sahih' | 'en.pickthall'
+    translationEdition:  'bn',
     showTransliteration: false,
     autoExpandTafsir:    false,
+    arabicFont:          'Amiri',
 };
 
 // -------------------------------------------------------
 // Init
 // -------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    const params = new URLSearchParams(window.location.search);
+    const params  = new URLSearchParams(window.location.search);
     currentSurahId = Math.min(114, Math.max(1, parseInt(params.get('id'), 10) || 1));
     const jumpAyah = parseInt(params.get('ayah'), 10) || null;
 
@@ -45,13 +42,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
 
     audioElement = document.getElementById('quran-audio');
-    audioElement.addEventListener('ended', onAudioEnded);
-    audioElement.addEventListener('error', onAudioError);
+    audioElement.addEventListener('ended',         onAudioEnded);
+    audioElement.addEventListener('error',         onAudioError);
+    audioElement.addEventListener('timeupdate',    updateAudioPlayerProgress);
+    audioElement.addEventListener('loadedmetadata', onAudioMetadata);
+    audioElement.addEventListener('pause',         updateAudioPlayerUI);
+    audioElement.addEventListener('play',          updateAudioPlayerUI);
 
     initTheme();
     applyLanguage();
     updateNavButtons();
     applySettingsUI();
+    applyArabicFont();
 
     // Header controls
     document.getElementById('lang-toggle').addEventListener('click', toggleLanguage);
@@ -59,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('font-decrease').addEventListener('click', () => changeFontSize(-1));
     document.getElementById('font-increase').addEventListener('click', () => changeFontSize(1));
 
-    // Settings btn
+    // Settings panel
     document.getElementById('settings-btn').addEventListener('click', toggleSettingsPanel);
     document.addEventListener('click', e => {
         const panel = document.getElementById('settings-panel');
@@ -77,6 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings();
         if (surahData) renderAyahs();
     });
+    document.getElementById('arabic-font-select').addEventListener('change', e => {
+        settings.arabicFont = e.target.value;
+        saveSettings();
+        applyArabicFont();
+    });
     document.getElementById('toggle-transliteration').addEventListener('change', e => {
         settings.showTransliteration = e.target.checked;
         saveSettings();
@@ -89,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (surahData) renderAyahs();
     });
 
-    // Prev / next surah
+    // Nav
     document.getElementById('prev-surah').addEventListener('click', () => navigate(-1));
     document.getElementById('next-surah').addEventListener('click', () => navigate(1));
 
@@ -103,49 +110,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     overlay.addEventListener('click', closeSidebar);
 
-    // Sidebar tabs
-    document.getElementById('stab-surah').addEventListener('click', () => switchSidebarTab('surah'));
-    document.getElementById('stab-para').addEventListener('click',  () => switchSidebarTab('para'));
+    // Sidebar dropdowns
+    document.getElementById('sd-surah').addEventListener('change', onSurahDropChange);
+    document.getElementById('sd-para').addEventListener('change',  onParaDropChange);
+    document.getElementById('sd-ayah').addEventListener('change',  onAyahDropChange);
 
-    // Sidebar search
-    document.getElementById('sidebar-search').addEventListener('input', onSidebarSearch);
-
-    // Sidebar goto
-    document.getElementById('goto-btn').addEventListener('click', onGotoClick);
-    document.getElementById('goto-ayah').addEventListener('keydown', e => {
-        if (e.key === 'Enter') onGotoClick();
-    });
-
-    // Main tabs
+    // Main content tabs
     document.getElementById('mtab-translation').addEventListener('click', () => switchMainTab('translation'));
     document.getElementById('mtab-tilawat').addEventListener('click',     () => switchMainTab('tilawat'));
 
-    // Load everything
-    loadSidebar(jumpAyah);
+    // Audio player bar
+    initAudioPlayerBar();
+
+    // Load data
+    populateParaDropdown();
+    loadSurahsForDropdown();
     loadSurah(jumpAyah);
 });
 
 // -------------------------------------------------------
-// Settings persistence
+// Settings
 // -------------------------------------------------------
 function loadSettings() {
     try {
-        const saved = localStorage.getItem('quran_settings');
-        if (saved) Object.assign(settings, JSON.parse(saved));
+        const s = JSON.parse(localStorage.getItem('quran_settings') || '{}');
+        Object.assign(settings, s);
     } catch { /* ignore */ }
 }
 function saveSettings() {
     try { localStorage.setItem('quran_settings', JSON.stringify(settings)); } catch { /* ignore */ }
 }
 function applySettingsUI() {
-    const sel = document.getElementById('translation-select');
-    if (sel) sel.value = settings.translationEdition;
-    const trEl = document.getElementById('toggle-transliteration');
-    if (trEl) trEl.checked = settings.showTransliteration;
-    const taEl = document.getElementById('toggle-tafsir-auto');
-    if (taEl) taEl.checked = settings.autoExpandTafsir;
+    const sel   = document.getElementById('translation-select');
+    const fsel  = document.getElementById('arabic-font-select');
+    const trEl  = document.getElementById('toggle-transliteration');
+    const taEl  = document.getElementById('toggle-tafsir-auto');
+    if (sel)   sel.value   = settings.translationEdition;
+    if (fsel)  fsel.value  = settings.arabicFont;
+    if (trEl)  trEl.checked = settings.showTransliteration;
+    if (taEl)  taEl.checked = settings.autoExpandTafsir;
 }
-
 function toggleSettingsPanel() {
     const panel = document.getElementById('settings-panel');
     const btn   = document.getElementById('settings-btn');
@@ -153,6 +157,17 @@ function toggleSettingsPanel() {
     const opening = panel.classList.contains('hidden');
     panel.classList.toggle('hidden', !opening);
     btn.classList.toggle('active', opening);
+}
+
+// -------------------------------------------------------
+// Arabic font
+// -------------------------------------------------------
+function applyArabicFont() {
+    const font = settings.arabicFont || 'Amiri';
+    document.documentElement.style.setProperty(
+        '--arabic-font-family',
+        `'${font}', 'Amiri', 'Scheherazade New', serif`
+    );
 }
 
 // -------------------------------------------------------
@@ -192,7 +207,6 @@ function toggleLanguage() {
 // Arabic font size
 // -------------------------------------------------------
 const FONT_SIZES = ['sm', 'md', 'lg'];
-
 function applyFontSize() {
     const list = document.getElementById('ayah-list');
     if (!list) return;
@@ -224,121 +238,76 @@ function updateNavButtons() {
 }
 
 // -------------------------------------------------------
-// Sidebar helpers
+// Sidebar
 // -------------------------------------------------------
 function closeSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-    overlay.setAttribute('aria-hidden', 'true');
+    sidebar?.classList.remove('open');
+    overlay?.classList.remove('show');
+    overlay?.setAttribute('aria-hidden', 'true');
 }
 
-function switchSidebarTab(which) {
-    const isSurah = which === 'surah';
-    document.getElementById('stab-surah').classList.toggle('active',  isSurah);
-    document.getElementById('stab-para').classList.toggle('active',  !isSurah);
-    document.getElementById('sidebar-surah-list').classList.toggle('hidden', !isSurah);
-    document.getElementById('sidebar-para-list').classList.toggle('hidden',  isSurah);
-}
-
-function onSidebarSearch(e) {
-    if (!allSurahsCache.length) return;
-    const q = e.target.value.trim().toLowerCase();
-    const filtered = q
-        ? allSurahsCache.filter(s =>
-            (s.bengaliName || '').toLowerCase().includes(q) ||
-            s.englishName.toLowerCase().includes(q) ||
-            String(s.number).includes(q))
-        : allSurahsCache;
-    renderSidebarSurahs(filtered);
-}
-
-async function loadSidebar(jumpAyah) {
+async function loadSurahsForDropdown() {
     try {
-        allSurahsCache = await getAllSurahs();
-        renderSidebarSurahs(allSurahsCache);
-        renderParaList();
+        const surahs = await getAllSurahs();
+        const sel    = document.getElementById('sd-surah');
+        if (!sel) return;
+        sel.innerHTML = surahs.map(s =>
+            `<option value="${s.number}"${s.number === currentSurahId ? ' selected' : ''}>
+                ${toBengaliNumber(s.number)}. ${s.bengaliName || s.englishName}
+            </option>`
+        ).join('');
     } catch { /* non-fatal */ }
 }
 
-function renderSidebarSurahs(surahs) {
-    const list = document.getElementById('sidebar-surah-list');
-    if (!list) return;
-
-    if (!surahs.length) {
-        list.innerHTML = '<div class="sidebar-para-coming">কোনো ফলাফল নেই</div>';
-        return;
-    }
-
-    list.innerHTML = surahs.map(s => {
-        const isActive = s.number === currentSurahId;
-        return `<a class="sbl-item${isActive ? ' active' : ''}"
-                   href="surah.html?id=${s.number}"
-                   aria-current="${isActive ? 'page' : 'false'}"
-                   title="${s.englishName}">
-                    <span class="sbl-num">${toBengaliNumber(s.number)}</span>
-                    <span class="sbl-name">${s.bengaliName || s.englishName}</span>
-                </a>`;
-    }).join('');
-
-    const activeEl = list.querySelector('.sbl-item.active');
-    if (activeEl) setTimeout(() => activeEl.scrollIntoView({ block: 'center' }), 200);
-}
-
-function renderParaList() {
-    const list = document.getElementById('sidebar-para-list');
-    if (!list) return;
+function populateParaDropdown() {
     const paras = getParaList();
-    list.innerHTML = paras.map(p => `
-        <a class="para-item" href="surah.html?id=${p.surah}&ayah=${p.ayah}">
-            <span class="para-num">${toBengaliNumber(p.num)}</span>
-            <span class="para-name">${p.name}</span>
-        </a>`).join('');
+    const sel   = document.getElementById('sd-para');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— পারা নির্বাচন করুন —</option>' +
+        paras.map(p =>
+            `<option value="${p.surah}:${p.ayah}">${toBengaliNumber(p.num)}. ${p.name}</option>`
+        ).join('');
 }
 
-function renderAyahStrip(count) {
-    const container = document.getElementById('sidebar-ayah-nums');
-    if (!container) return;
+function populateAyahDropdown(count) {
+    const sel = document.getElementById('sd-ayah');
+    if (!sel) return;
     let html = '';
     for (let i = 1; i <= count; i++) {
-        html += `<button type="button" class="ayah-strip-btn"
-                         onclick="jumpToAyah(${i})"
-                         aria-label="আয়াত ${i}">${toBengaliNumber(i)}</button>`;
+        html += `<option value="${i}">আয়াত ${toBengaliNumber(i)}</option>`;
     }
-    container.innerHTML = html;
+    sel.innerHTML = html;
+}
+
+function onSurahDropChange(e) {
+    const id = parseInt(e.target.value, 10);
+    if (id && id !== currentSurahId) window.location.href = `surah.html?id=${id}`;
+}
+
+function onParaDropChange(e) {
+    const val = e.target.value;
+    e.target.value = ''; // Reset to placeholder after selection
+    if (!val) return;
+    const [surahNum, ayahNum] = val.split(':').map(Number);
+    if (surahNum === currentSurahId) {
+        jumpToAyah(ayahNum);
+    } else {
+        window.location.href = `surah.html?id=${surahNum}&ayah=${ayahNum}`;
+    }
+}
+
+function onAyahDropChange(e) {
+    const n = parseInt(e.target.value, 10);
+    if (n >= 1) jumpToAyah(n);
 }
 
 function jumpToAyah(n) {
     document.getElementById(`ayah-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const sel = document.getElementById('sd-ayah');
+    if (sel) sel.value = String(n);
     closeSidebar();
-}
-
-function highlightStripBtn(n) {
-    document.querySelectorAll('.ayah-strip-btn').forEach((btn, i) =>
-        btn.classList.toggle('active', i + 1 === n));
-}
-
-// -------------------------------------------------------
-// Goto surah:ayah
-// -------------------------------------------------------
-function onGotoClick() {
-    const surahVal = parseInt(document.getElementById('goto-surah').value, 10);
-    const ayahVal  = parseInt(document.getElementById('goto-ayah').value, 10);
-
-    if (!surahVal || surahVal < 1 || surahVal > 114) {
-        showToast('সূরা নম্বর ১–১১৪ এর মধ্যে হতে হবে।');
-        return;
-    }
-
-    if (surahVal === currentSurahId) {
-        // Same surah — scroll to ayah
-        if (ayahVal >= 1) jumpToAyah(ayahVal);
-        closeSidebar();
-    } else {
-        const url = `surah.html?id=${surahVal}${ayahVal >= 1 ? '&ayah=' + ayahVal : ''}`;
-        window.location.href = url;
-    }
 }
 
 // -------------------------------------------------------
@@ -346,14 +315,13 @@ function onGotoClick() {
 // -------------------------------------------------------
 function switchMainTab(tab) {
     currentMainTab = tab;
-    const isTrans = tab === 'translation';
+    const isTrans  = tab === 'translation';
     document.getElementById('mtab-translation').classList.toggle('active',  isTrans);
     document.getElementById('mtab-tilawat').classList.toggle('active',     !isTrans);
-    document.getElementById('mtab-translation').setAttribute('aria-selected', isTrans);
-    document.getElementById('mtab-tilawat').setAttribute('aria-selected',    !isTrans);
+    document.getElementById('mtab-translation').setAttribute('aria-selected',  isTrans);
+    document.getElementById('mtab-tilawat').setAttribute('aria-selected',     !isTrans);
     document.getElementById('panel-translation').classList.toggle('hidden', !isTrans);
     document.getElementById('panel-tilawat').classList.toggle('hidden',      isTrans);
-
     if (!isTrans && surahData) renderTilawatPanel();
 }
 
@@ -374,7 +342,7 @@ async function loadSurah(jumpAyah) {
 }
 
 // -------------------------------------------------------
-// Surah info header (with full audio button)
+// Surah info header (with full-surah audio button)
 // -------------------------------------------------------
 function updateHeaderInfo() {
     const s = surahData.arabic;
@@ -395,7 +363,6 @@ function updateHeaderInfo() {
 
     const header = document.getElementById('surah-info-header');
     if (!header) return;
-
     header.innerHTML = `
         <div class="sih-inner">
             <div class="sih-left">
@@ -416,25 +383,22 @@ function updateHeaderInfo() {
                 <div class="full-audio-progress" id="full-audio-progress"></div>
             </div>
         </div>`;
-
     document.getElementById('full-audio-btn').addEventListener('click', toggleFullSurahAudio);
 }
 
 // -------------------------------------------------------
-// Render ayah cards (translation + transliteration)
+// Render ayah cards
 // -------------------------------------------------------
 function getTranslationText(i) {
-    if (settings.translationEdition === 'en.pickthall') {
-        return surahData.englishPickthall?.ayahs[i]?.text || '';
-    }
-    if (settings.translationEdition === 'en.sahih') {
-        return surahData.englishSahih?.ayahs[i]?.text || '';
-    }
+    if (settings.translationEdition === 'en.pickthall') return surahData.englishPickthall?.ayahs[i]?.text || '';
+    if (settings.translationEdition === 'en.sahih')     return surahData.englishSahih?.ayahs[i]?.text    || '';
     return surahData.bengali?.ayahs[i]?.text || '';
 }
-
 function getEnglishText(i) {
     return surahData.englishSahih?.ayahs[i]?.text || '';
+}
+function getBengaliTransText(i) {
+    return surahData.bengali?.ayahs[i]?.text || '';
 }
 
 function renderAyahs() {
@@ -442,7 +406,6 @@ function renderAyahs() {
     const arAyahs = surahData.arabic.ayahs;
     const surahBnName = getBengaliName(currentSurahId);
 
-    // Show bismillah (not for surah 1 or 9)
     if (currentSurahId !== 1 && currentSurahId !== 9) {
         document.getElementById('bismillah-block')?.classList.remove('hidden');
     }
@@ -451,10 +414,25 @@ function renderAyahs() {
         const transText = getTranslationText(i);
         const trText    = surahData.transliteration?.ayahs[i]?.text || '';
         const enText    = getEnglishText(i);
+        const bnText    = getBengaliTransText(i);
         const bnNum     = toBengaliNumber(ayah.numberInSurah);
-        const bracketRef = `[${surahBnName}: ${bnNum}]`;
+        const isBn      = settings.translationEdition === 'bn';
+        const bracketRef = isBn ? `<span class="ayah-ref"> [${surahBnName}: ${bnNum}]</span>` : '';
 
-        const isBn = settings.translationEdition === 'bn';
+        // Tafsir panel — Bengali default, English on toggle
+        const tafsirOpen = settings.autoExpandTafsir;
+        const tafsirHtml = (bnText || enText) ? `
+            <div class="tafsir-panel${tafsirOpen ? '' : ' hidden'}" id="tafsir-${ayah.numberInSurah}">
+                <div class="tafsir-header">
+                    <span class="tafsir-heading">তাফসীরঃ</span>
+                    <div class="tl-toggle" role="group" aria-label="তাফসীর ভাষা">
+                        <button type="button" class="tlt-btn active" data-ayah="${ayah.numberInSurah}" data-lang="bn">বাং</button>
+                        <button type="button" class="tlt-btn" data-ayah="${ayah.numberInSurah}" data-lang="en">EN</button>
+                    </div>
+                </div>
+                ${bnText ? `<p class="tafsir-text tafsir-bn">${escapeHtml(bnText)}</p>` : ''}
+                ${enText ? `<p class="tafsir-text tafsir-en hidden">${escapeHtml(enText)}</p>` : ''}
+            </div>` : '';
 
         return `
         <div class="ayah-card" id="ayah-${ayah.numberInSurah}"
@@ -468,11 +446,12 @@ function renderAyahs() {
             ${trText ? `<div class="ayah-transliteration">${escapeHtml(trText)}</div>` : ''}
 
             ${transText ? `<div class="ayah-bn-text">
-                ${escapeHtml(transText)}${isBn ? `<span class="ayah-ref"> ${bracketRef}</span>` : ''}
+                ${escapeHtml(transText)}${bracketRef}
             </div>` : ''}
 
             <div class="ayah-action-bar" role="toolbar" aria-label="আয়াত ${ayah.numberInSurah} অ্যাকশন">
-                <button type="button" class="ayah-action-btn tafsir-toggle-btn${settings.autoExpandTafsir ? ' active' : ''}"
+
+                <button type="button" class="ayah-action-btn tafsir-toggle-btn${tafsirOpen ? ' active' : ''}"
                         data-ayah="${ayah.numberInSurah}" title="তাফসীর দেখুন">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                          stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -481,6 +460,7 @@ function renderAyahs() {
                     </svg>
                     তাফসীর
                 </button>
+
                 <button type="button" class="ayah-action-btn share-ayah-btn"
                         data-ayah="${ayah.numberInSurah}" title="শেয়ার করুন">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -492,7 +472,18 @@ function renderAyahs() {
                         <line x1="15.41" y1="6.51"  x2="8.59"  y2="10.49"/>
                     </svg>
                 </button>
+
+                <button type="button" class="ayah-action-btn copy-ayah-btn"
+                        data-ayah="${ayah.numberInSurah}" title="কপি করুন">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="9" y="9" width="13" height="13" rx="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                </button>
+
                 <div class="ayah-num-badge-action" aria-hidden="true">${bnNum}</div>
+
                 <button type="button" class="ayah-action-btn bookmark-ayah-btn"
                         data-ayah="${ayah.numberInSurah}" title="বুকমার্ক করুন">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -500,31 +491,32 @@ function renderAyahs() {
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
                     </svg>
                 </button>
+
                 <button type="button" class="ayah-action-btn play-btn"
                         data-global="${ayah.number}" data-local="${ayah.numberInSurah}"
                         aria-label="আয়াত ${ayah.numberInSurah} অডিও" title="তিলাওয়াত শুনুন">
                     ${playIcon()}
                     <span class="audio-label">অডিও</span>
                 </button>
+
             </div>
 
-            ${enText ? `
-            <div class="tafsir-panel${settings.autoExpandTafsir ? '' : ' hidden'}" id="tafsir-${ayah.numberInSurah}">
-                <div class="tafsir-heading">তাফসীরঃ (Sahih International)</div>
-                <p class="tafsir-text">${escapeHtml(enText)}</p>
-            </div>` : ''}
+            ${tafsirHtml}
         </div>`;
     }).join('');
 
-    // Apply persisted preferences
     list.classList.toggle('show-transliteration', settings.showTransliteration);
     applyFontSize();
 
-    // Wire per-card events
+    // Wire events
     list.querySelectorAll('.tafsir-toggle-btn').forEach(btn =>
         btn.addEventListener('click', onTafsirClick));
+    list.querySelectorAll('.tlt-btn').forEach(btn =>
+        btn.addEventListener('click', onTafsirLangToggle));
     list.querySelectorAll('.share-ayah-btn').forEach(btn =>
         btn.addEventListener('click', onShareClick));
+    list.querySelectorAll('.copy-ayah-btn').forEach(btn =>
+        btn.addEventListener('click', onCopyClick));
     list.querySelectorAll('.bookmark-ayah-btn').forEach(btn =>
         btn.addEventListener('click', onBookmarkClick));
     list.querySelectorAll('.play-btn').forEach(btn =>
@@ -533,44 +525,39 @@ function renderAyahs() {
     document.getElementById('loading-state').classList.add('hidden');
     list.classList.remove('hidden');
 
-    renderAyahStrip(arAyahs.length);
+    populateAyahDropdown(arAyahs.length);
     setupBookmarkObserver();
 }
 
 // -------------------------------------------------------
-// তিলাওয়াত panel — mushaf style continuous Arabic
+// তিলাওয়াত panel
 // -------------------------------------------------------
 function toArabicNumeral(n) {
-    const map = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-    return String(n).replace(/[0-9]/g, d => map[parseInt(d)]);
+    const m = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+    return String(n).replace(/[0-9]/g, d => m[parseInt(d)]);
 }
 
 function renderTilawatPanel() {
     const panel = document.getElementById('tilawat-content');
     if (!panel || !surahData) return;
-
-    const arAyahs  = surahData.arabic.ayahs;
+    const arAyahs   = surahData.arabic.ayahs;
     const surahName = getBengaliName(currentSurahId) || surahData.arabic.englishName;
-
-    // Bismillah (not surah 1 or 9)
-    const bismillahHtml = (currentSurahId !== 1 && currentSurahId !== 9)
-        ? `<div class="bismillah-arabic" style="text-align:center;margin-bottom:1rem">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>`
+    const bismillah = (currentSurahId !== 1 && currentSurahId !== 9)
+        ? `<div class="bismillah-arabic" style="text-align:center;margin-bottom:1.1rem">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>`
         : '';
-
     const ayahsHtml = arAyahs.map(ayah =>
         `${ayah.text}<span class="ayah-end-mark" title="আয়াত ${ayah.numberInSurah}"> ۝${toArabicNumeral(ayah.numberInSurah)} </span>`
     ).join(' ');
-
     panel.innerHTML = `
         <div class="tilawat-container">
             <div class="tilawat-heading">সূরা ${escapeHtml(surahName)} — সম্পূর্ণ তিলাওয়াত</div>
-            ${bismillahHtml}
+            ${bismillah}
             <div class="tilawat-arabic" dir="rtl" lang="ar">${ayahsHtml}</div>
         </div>`;
 }
 
 // -------------------------------------------------------
-// Tafsir toggle
+// Tafsir open/close
 // -------------------------------------------------------
 function onTafsirClick(e) {
     const btn     = e.currentTarget;
@@ -582,21 +569,44 @@ function onTafsirClick(e) {
     btn.classList.toggle('active', opening);
 }
 
+// Tafsir language toggle (বাং ↔ EN per panel)
+function onTafsirLangToggle(e) {
+    const btn     = e.currentTarget;
+    const ayahNum = btn.dataset.ayah;
+    const lang    = btn.dataset.lang;
+    const panel   = document.getElementById(`tafsir-${ayahNum}`);
+    if (!panel) return;
+
+    // Toggle active on buttons within this panel
+    panel.querySelectorAll('.tlt-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+
+    // Show/hide text divs
+    panel.querySelector('.tafsir-bn')?.classList.toggle('hidden', lang !== 'bn');
+    panel.querySelector('.tafsir-en')?.classList.toggle('hidden', lang !== 'en');
+}
+
 // -------------------------------------------------------
 // Share ayah
 // -------------------------------------------------------
-function onShareClick(e) {
-    const ayahNum   = parseInt(e.currentTarget.dataset.ayah, 10);
+function buildAyahText(ayahNum) {
     const card      = document.getElementById(`ayah-${ayahNum}`);
     const arabicTxt = card?.querySelector('.ayah-arabic')?.textContent?.trim() || '';
     const transTxt  = card?.querySelector('.ayah-bn-text')?.textContent?.trim() || '';
     const surahName = getBengaliName(currentSurahId);
     const bnNum     = toBengaliNumber(ayahNum);
-    const text      = [arabicTxt, transTxt].filter(Boolean).join('\n\n');
-    const full      = `${text}\n\n[${surahName}: ${bnNum}]`;
+    const body      = [arabicTxt, transTxt].filter(Boolean).join('\n\n');
+    return `${body}\n\n[${surahName}: ${bnNum}]`;
+}
 
+function onShareClick(e) {
+    const ayahNum = parseInt(e.currentTarget.dataset.ayah, 10);
+    const full    = buildAyahText(ayahNum);
+    const surahName = getBengaliName(currentSurahId);
     if (navigator.share) {
-        navigator.share({ title: `কুরআন — ${surahName} আয়াত ${bnNum}`, text: full }).catch(() => {});
+        navigator.share({
+            title: `কুরআন — ${surahName} আয়াত ${toBengaliNumber(ayahNum)}`,
+            text: full
+        }).catch(() => {});
     } else {
         navigator.clipboard?.writeText(full)
             .then(() => showToast('আয়াত কপি হয়েছে! ✓'))
@@ -604,8 +614,21 @@ function onShareClick(e) {
     }
 }
 
+function onCopyClick(e) {
+    const btn     = e.currentTarget;
+    const ayahNum = parseInt(btn.dataset.ayah, 10);
+    const full    = buildAyahText(ayahNum);
+    navigator.clipboard?.writeText(full)
+        .then(() => {
+            btn.classList.add('copied');
+            showToast('আয়াত কপি হয়েছে! ✓');
+            setTimeout(() => btn.classList.remove('copied'), 2000);
+        })
+        .catch(() => showToast('কপি করা যায়নি।'));
+}
+
 // -------------------------------------------------------
-// Bookmark (manual click)
+// Bookmark
 // -------------------------------------------------------
 function onBookmarkClick(e) {
     const ayahNum = parseInt(e.currentTarget.dataset.ayah, 10);
@@ -613,6 +636,60 @@ function onBookmarkClick(e) {
     showToast(currentLang === 'bn'
         ? `আয়াত ${toBengaliNumber(ayahNum)} বুকমার্ক করা হয়েছে।`
         : `Ayah ${ayahNum} bookmarked.`);
+}
+
+function formatBookmarkAge(ts) {
+    if (!ts) return '';
+    const diff  = Date.now() - ts;
+    const days  = Math.floor(diff / 86400000);
+    const hours = Math.floor(diff / 3600000);
+    const mins  = Math.floor(diff / 60000);
+    if (days  > 0) return ` (${toBengaliNumber(days)} দিন আগে)`;
+    if (hours > 0) return ` (${toBengaliNumber(hours)} ঘন্টা আগে)`;
+    if (mins  > 0) return ` (${toBengaliNumber(mins)} মিনিট আগে)`;
+    return ' (এইমাত্র)';
+}
+
+function setupBookmarkObserver() {
+    if (!('IntersectionObserver' in window)) return;
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                const n = parseInt(e.target.dataset.ayah, 10);
+                saveBookmark(currentSurahId, n);
+                const sel = document.getElementById('sd-ayah');
+                if (sel) sel.value = String(n);
+            }
+        });
+    }, { threshold: 0.4 });
+    document.querySelectorAll('.ayah-card').forEach(c => obs.observe(c));
+}
+
+function checkBookmark() {
+    const bm = loadBookmark(currentSurahId);
+    if (!bm || bm.ayah <= 1) return;
+
+    const banner     = document.getElementById('bookmark-banner');
+    const textEl     = document.getElementById('bookmark-text');
+    const contBtn    = document.getElementById('bookmark-continue');
+    const dismissBtn = document.getElementById('bookmark-dismiss');
+    if (!banner) return;
+
+    const age    = formatBookmarkAge(bm.ts);
+    textEl.textContent = currentLang === 'bn'
+        ? `আপনি আয়াত ${toBengaliNumber(bm.ayah)} পর্যন্ত পড়েছিলেন${age}`
+        : `You read up to ayah ${bm.ayah}${age}`;
+    banner.classList.remove('hidden');
+
+    contBtn.onclick = () => {
+        banner.classList.add('hidden');
+        document.getElementById(`ayah-${bm.ayah}`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    dismissBtn.onclick = () => {
+        banner.classList.add('hidden');
+        clearBookmark(currentSurahId);
+    };
 }
 
 // -------------------------------------------------------
@@ -623,11 +700,12 @@ function onPlayClick(e) {
     const globalNum = parseInt(btn.dataset.global, 10);
     const localNum  = parseInt(btn.dataset.local,  10);
 
-    if (fullSurahMode) { stopFullSurahAudio(); }
+    if (fullSurahMode) stopFullSurahAudio();
 
     if (playingGlobal === globalNum && !audioElement.paused) {
         audioElement.pause();
         resetPlayingState();
+        hideAudioPlayerBar();
         return;
     }
 
@@ -643,17 +721,55 @@ function onPlayClick(e) {
             btn.insertAdjacentHTML('afterbegin', pauseIcon());
             btn.classList.add('playing');
             playingGlobal = globalNum;
+            playingLocal  = localNum;
             playingBtn    = btn;
             document.getElementById(`ayah-${localNum}`)?.classList.add('playing');
-            highlightStripBtn(localNum);
+            const sel = document.getElementById('sd-ayah');
+            if (sel) sel.value = String(localNum);
+            showAudioPlayerBar();
+            updateAudioPlayerInfo(surahData.arabic.ayahs.find(a => a.numberInSurah === localNum));
         })
         .catch(() => {
             btn.classList.remove('loading');
             btn.insertAdjacentHTML('afterbegin', playIcon());
-            showToast(currentLang === 'bn'
-                ? 'অডিও চালানো যায়নি। নেটওয়ার্ক পরীক্ষা করুন।'
-                : 'Could not play audio.');
+            showToast(currentLang === 'bn' ? 'অডিও চালানো যায়নি।' : 'Could not play audio.');
         });
+}
+
+// Navigate to a specific ayah index (for player bar prev/next)
+function playAyahAtIdx(idx) {
+    if (!surahData) return;
+    const ayah = surahData.arabic.ayahs[idx];
+    if (!ayah) return;
+
+    if (fullSurahMode) {
+        fullSurahIdx = idx;
+        advanceFullSurah();
+        return;
+    }
+
+    stopCurrent();
+    audioElement.src = buildAudioUrl(ayah.number);
+    audioElement.play()
+        .then(() => {
+            playingGlobal = ayah.number;
+            playingLocal  = ayah.numberInSurah;
+            document.getElementById(`ayah-${ayah.numberInSurah}`)?.classList.add('playing');
+            document.getElementById(`ayah-${ayah.numberInSurah}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const btn = document.querySelector(`.play-btn[data-local="${ayah.numberInSurah}"]`);
+            if (btn) {
+                btn.querySelector('svg')?.remove();
+                btn.insertAdjacentHTML('afterbegin', pauseIcon());
+                btn.classList.add('playing');
+                playingBtn = btn;
+            }
+            const sel = document.getElementById('sd-ayah');
+            if (sel) sel.value = String(ayah.numberInSurah);
+            showAudioPlayerBar();
+            updateAudioPlayerInfo(ayah);
+        })
+        .catch(() => showToast('অডিও চালানো যায়নি।'));
 }
 
 function stopCurrent() {
@@ -664,6 +780,7 @@ function stopCurrent() {
         if (local) document.getElementById(`ayah-${local}`)?.classList.remove('playing');
     }
     playingGlobal = null;
+    playingLocal  = null;
     playingBtn    = null;
 }
 
@@ -674,6 +791,7 @@ function resetPlayingState() {
         if (local) document.getElementById(`ayah-${local}`)?.classList.remove('playing');
     }
     playingGlobal = null;
+    playingLocal  = null;
     playingBtn    = null;
 }
 
@@ -683,6 +801,8 @@ function onAudioEnded() {
         advanceFullSurah();
     } else {
         resetPlayingState();
+        // Keep player bar visible but show paused state
+        updateAudioPlayerUI();
     }
 }
 function onAudioError() {
@@ -690,7 +810,8 @@ function onAudioError() {
         stopFullSurahAudio();
     } else {
         resetPlayingState();
-        showToast(currentLang === 'bn' ? 'অডিও লোড হয়নি।' : 'Audio failed to load.');
+        hideAudioPlayerBar();
+        showToast(currentLang === 'bn' ? 'অডিও লোড হয়নি।' : 'Audio failed.');
     }
 }
 
@@ -704,50 +825,36 @@ function getLocalNum(globalNum) {
 }
 
 function playIcon() {
-    return `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <polygon points="5,3 19,12 5,21"/>
-    </svg>`;
+    return `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>`;
 }
 function pauseIcon() {
-    return `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <rect x="6" y="4" width="4" height="16"/>
-        <rect x="14" y="4" width="4" height="16"/>
-    </svg>`;
+    return `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
 }
 function stopIcon() {
-    return `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <rect x="3" y="3" width="18" height="18" rx="2"/>
-    </svg>`;
+    return `<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
 }
 
 // -------------------------------------------------------
-// Full surah sequential audio
+// Full-surah sequential audio
 // -------------------------------------------------------
 function toggleFullSurahAudio() {
-    if (fullSurahMode) {
-        stopFullSurahAudio();
-    } else {
-        startFullSurahAudio();
-    }
+    if (fullSurahMode) stopFullSurahAudio();
+    else startFullSurahAudio();
 }
-
 function startFullSurahAudio() {
     stopCurrent();
     fullSurahMode = true;
     fullSurahIdx  = 0;
     advanceFullSurah();
 }
-
 function stopFullSurahAudio() {
     fullSurahMode = false;
     fullSurahIdx  = 0;
     if (!audioElement.paused) audioElement.pause();
-    updateFullAudioBtn();
-    // Remove playing class from all cards
     document.querySelectorAll('.ayah-card.playing').forEach(c => c.classList.remove('playing'));
-    highlightStripBtn(-1);
+    updateFullAudioBtn();
+    hideAudioPlayerBar();
 }
-
 function advanceFullSurah() {
     if (!fullSurahMode || !surahData) return;
     const ayahs = surahData.arabic.ayahs;
@@ -756,80 +863,145 @@ function advanceFullSurah() {
         showToast('তিলাওয়াত সম্পন্ন হয়েছে।');
         return;
     }
-
     const ayah = ayahs[fullSurahIdx];
     audioElement.src = buildAudioUrl(ayah.number);
     audioElement.play().catch(() => stopFullSurahAudio());
 
-    // Highlight current ayah
     document.querySelectorAll('.ayah-card.playing').forEach(c => c.classList.remove('playing'));
     document.getElementById(`ayah-${ayah.numberInSurah}`)?.classList.add('playing');
-    document.getElementById(`ayah-${ayah.numberInSurah}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    highlightStripBtn(ayah.numberInSurah);
+    document.getElementById(`ayah-${ayah.numberInSurah}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const sel = document.getElementById('sd-ayah');
+    if (sel) sel.value = String(ayah.numberInSurah);
 
+    playingGlobal = ayah.number;
+    playingLocal  = ayah.numberInSurah;
+    showAudioPlayerBar();
+    updateAudioPlayerInfo(ayah);
     updateFullAudioBtn();
 }
-
 function updateFullAudioBtn() {
-    const btn      = document.getElementById('full-audio-btn');
-    const progress = document.getElementById('full-audio-progress');
+    const btn  = document.getElementById('full-audio-btn');
+    const prog = document.getElementById('full-audio-progress');
     if (!btn) return;
-
     if (fullSurahMode) {
         const total = surahData?.arabic.ayahs.length || 0;
         btn.innerHTML = `${stopIcon()} থামাও`;
         btn.classList.add('playing');
-        if (progress) {
-            progress.textContent = `${toBengaliNumber(fullSurahIdx + 1)} / ${toBengaliNumber(total)} আয়াত`;
-        }
+        if (prog) prog.textContent =
+            `${toBengaliNumber(fullSurahIdx + 1)} / ${toBengaliNumber(total)} আয়াত`;
     } else {
         btn.innerHTML = '▶ পুরো সূরা';
         btn.classList.remove('playing');
-        if (progress) progress.textContent = '';
+        if (prog) prog.textContent = '';
     }
 }
 
 // -------------------------------------------------------
-// Bookmark (IntersectionObserver — auto-save)
+// Audio player bar
 // -------------------------------------------------------
-function setupBookmarkObserver() {
-    if (!('IntersectionObserver' in window)) return;
-    const obs = new IntersectionObserver(entries => {
-        entries.forEach(e => {
-            if (e.isIntersecting) {
-                const n = parseInt(e.target.dataset.ayah, 10);
-                saveBookmark(currentSurahId, n);
-                highlightStripBtn(n);
-            }
-        });
-    }, { threshold: 0.4 });
-    document.querySelectorAll('.ayah-card').forEach(c => obs.observe(c));
+function initAudioPlayerBar() {
+    document.getElementById('apb-play-pause').addEventListener('click', () => {
+        if (audioElement.paused) {
+            audioElement.play().catch(() => {});
+        } else {
+            audioElement.pause();
+        }
+    });
+
+    document.getElementById('apb-prev').addEventListener('click', () => {
+        if (!surahData) return;
+        const ayahs = surahData.arabic.ayahs;
+        const idx   = ayahs.findIndex(a => a.number === playingGlobal);
+        if (idx > 0) playAyahAtIdx(idx - 1);
+    });
+
+    document.getElementById('apb-next').addEventListener('click', () => {
+        if (!surahData) return;
+        const ayahs = surahData.arabic.ayahs;
+        const idx   = ayahs.findIndex(a => a.number === playingGlobal);
+        if (idx >= 0 && idx < ayahs.length - 1) playAyahAtIdx(idx + 1);
+    });
+
+    document.getElementById('apb-close').addEventListener('click', () => {
+        stopCurrent();
+        if (fullSurahMode) stopFullSurahAudio();
+        hideAudioPlayerBar();
+    });
+
+    document.getElementById('apb-seek').addEventListener('input', e => {
+        const dur = audioElement.duration;
+        if (dur && !isNaN(dur)) {
+            audioElement.currentTime = (e.target.value / 100) * dur;
+        }
+    });
 }
 
-function checkBookmark() {
-    const saved = loadBookmark(currentSurahId);
-    if (!saved || saved <= 1) return;
+function showAudioPlayerBar() {
+    const bar = document.getElementById('audio-player-bar');
+    if (!bar) return;
+    bar.classList.remove('hidden');
+    document.body.classList.add('audio-playing');
+}
+function hideAudioPlayerBar() {
+    const bar = document.getElementById('audio-player-bar');
+    if (!bar) return;
+    bar.classList.add('hidden');
+    document.body.classList.remove('audio-playing');
+    // Reset progress
+    document.getElementById('apb-fill').style.width  = '0%';
+    document.getElementById('apb-seek').value        = 0;
+    document.getElementById('apb-time-curr').textContent = '0:00';
+    document.getElementById('apb-time-dur').textContent  = '0:00';
+}
 
-    const banner     = document.getElementById('bookmark-banner');
-    const textEl     = document.getElementById('bookmark-text');
-    const contBtn    = document.getElementById('bookmark-continue');
-    const dismissBtn = document.getElementById('bookmark-dismiss');
-    if (!banner) return;
+function updateAudioPlayerInfo(ayah) {
+    if (!ayah) return;
+    const surahName = getBengaliName(currentSurahId);
+    const titleEl   = document.getElementById('apb-title');
+    if (titleEl) titleEl.textContent =
+        `সূরা ${surahName} — আয়াত ${toBengaliNumber(ayah.numberInSurah)}`;
+}
 
-    textEl.textContent = currentLang === 'bn'
-        ? `আপনি আয়াত ${toBengaliNumber(saved)} পর্যন্ত পড়েছিলেন`
-        : `You read up to ayah ${saved}`;
-    banner.classList.remove('hidden');
+function updateAudioPlayerProgress() {
+    const curr = audioElement.currentTime;
+    const dur  = audioElement.duration;
+    const currEl = document.getElementById('apb-time-curr');
+    const fillEl = document.getElementById('apb-fill');
+    const seekEl = document.getElementById('apb-seek');
+    if (currEl) currEl.textContent = formatTime(curr);
+    if (dur && !isNaN(dur)) {
+        const pct = (curr / dur) * 100;
+        if (fillEl) fillEl.style.width  = pct + '%';
+        if (seekEl) seekEl.value        = pct;
+    }
+}
 
-    contBtn.onclick = () => {
-        banner.classList.add('hidden');
-        document.getElementById(`ayah-${saved}`)
-            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-    dismissBtn.onclick = () => {
-        banner.classList.add('hidden');
-        clearBookmark(currentSurahId);
-    };
+function onAudioMetadata() {
+    const dur    = audioElement.duration;
+    const durEl  = document.getElementById('apb-time-dur');
+    const fillEl = document.getElementById('apb-fill');
+    const seekEl = document.getElementById('apb-seek');
+    if (durEl)  durEl.textContent  = formatTime(dur);
+    if (fillEl) fillEl.style.width = '0%';
+    if (seekEl) seekEl.value       = 0;
+}
+
+function updateAudioPlayerUI() {
+    const iconEl = document.getElementById('apb-play-icon');
+    if (!iconEl) return;
+    if (audioElement.paused) {
+        iconEl.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+    } else {
+        iconEl.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    }
+}
+
+function formatTime(secs) {
+    if (!isFinite(secs) || isNaN(secs)) return '0:00';
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
 }
 
 // -------------------------------------------------------
@@ -839,20 +1011,18 @@ function showLoadingState() {
     const loading  = document.getElementById('loading-state');
     const ayahList = document.getElementById('ayah-list');
     const errDiv   = document.getElementById('error-state');
-
     loading.innerHTML = Array.from({ length: 5 }, (_, i) => `
         <div class="skeleton-ayah">
             <div class="ayah-top">
                 <div class="skeleton" style="width:31px;height:31px;border-radius:50%;flex-shrink:0"></div>
                 <div style="flex:1">
-                    <div class="skeleton" style="height:26px;width:${i % 2 === 0 ? '80%' : '65%'};margin-left:auto;border-radius:5px"></div>
-                    <div class="skeleton" style="height:22px;width:${i % 2 === 0 ? '55%' : '72%'};margin-left:auto;border-radius:5px;margin-top:7px"></div>
+                    <div class="skeleton" style="height:26px;width:${i%2===0?'80%':'65%'};margin-left:auto;border-radius:5px"></div>
+                    <div class="skeleton" style="height:22px;width:${i%2===0?'55%':'72%'};margin-left:auto;border-radius:5px;margin-top:7px"></div>
                 </div>
             </div>
             <div class="skeleton" style="height:12px;width:100%;border-radius:4px"></div>
             <div class="skeleton" style="height:12px;width:70%;border-radius:4px;margin-top:5px"></div>
         </div>`).join('');
-
     loading.classList.remove('hidden');
     ayahList.classList.add('hidden');
     errDiv.classList.add('hidden');

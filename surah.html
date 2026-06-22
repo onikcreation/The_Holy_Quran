@@ -12,7 +12,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600&family=Scheherazade+New:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -64,7 +64,7 @@
     </header>
 
     <!-- =============================================
-         SETTINGS PANEL (fixed dropdown)
+         SETTINGS PANEL
          ============================================= -->
     <div class="settings-panel hidden" id="settings-panel" role="dialog" aria-label="সেটিংস">
         <div class="settings-header">সেটিংস ⚙</div>
@@ -79,9 +79,18 @@
         </div>
 
         <div class="settings-section">
+            <label class="settings-label" for="arabic-font-select">আরবি ফন্ট</label>
+            <select class="settings-select" id="arabic-font-select">
+                <option value="Amiri">Amiri (ক্লাসিক)</option>
+                <option value="Scheherazade New">Scheherazade New (ঐতিহ্যবাহী)</option>
+                <option value="Noto Naskh Arabic">Noto Naskh Arabic (আধুনিক)</option>
+            </select>
+        </div>
+
+        <div class="settings-section">
             <div class="toggle-row">
-                <span class="toggle-label">বাংলা উচ্চারণ দেখান</span>
-                <label class="toggle-switch" aria-label="বাংলা উচ্চারণ">
+                <span class="toggle-label">উচ্চারণ দেখান (Roman)</span>
+                <label class="toggle-switch" aria-label="উচ্চারণ">
                     <input type="checkbox" id="toggle-transliteration">
                     <span class="toggle-track"></span>
                 </label>
@@ -117,60 +126,33 @@
          ============================================= -->
     <div class="page-layout">
 
-        <!-- LEFT SIDEBAR -->
+        <!-- LEFT SIDEBAR — dropdown navigation -->
         <aside class="sidebar" id="sidebar" aria-label="নেভিগেশন">
             <div class="sidebar-inner">
+                <div class="sb-nav">
 
-                <!-- Search -->
-                <div class="sidebar-search-wrap">
-                    <svg class="sidebar-search-icon" viewBox="0 0 24 24" fill="none"
-                         stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    <input type="search" class="sidebar-search-input" id="sidebar-search"
-                           placeholder="সূরা অনুসন্ধান..." autocomplete="off"
-                           aria-label="সূরা খুঁজুন">
-                </div>
-
-                <!-- Surah / Para tabs -->
-                <div class="sidebar-tabs">
-                    <button type="button" class="stab active" id="stab-surah">সূরা</button>
-                    <button type="button" class="stab"        id="stab-para">পারা</button>
-                </div>
-
-                <!-- List body + ayah strip -->
-                <div class="sidebar-body">
-                    <div id="sidebar-surah-list" class="sidebar-panel">
-                        <div id="sbl-skeleton">
-                            <div class="skeleton" style="height:36px;border-radius:0;margin:1px 0"></div>
-                            <div class="skeleton" style="height:36px;border-radius:0;margin:1px 0"></div>
-                            <div class="skeleton" style="height:36px;border-radius:0;margin:1px 0"></div>
-                            <div class="skeleton" style="height:36px;border-radius:0;margin:1px 0"></div>
-                            <div class="skeleton" style="height:36px;border-radius:0;margin:1px 0"></div>
-                        </div>
+                    <div class="sb-nav-group">
+                        <label class="sb-nav-label" for="sd-surah">সূরা</label>
+                        <select class="sb-nav-select" id="sd-surah" aria-label="সূরা নির্বাচন করুন">
+                            <option value="">লোড হচ্ছে…</option>
+                        </select>
                     </div>
-                    <div id="sidebar-para-list" class="sidebar-panel hidden"></div>
 
-                    <div class="sidebar-ayah-strip" id="sidebar-ayah-strip">
-                        <div class="strip-header">আয়াত</div>
-                        <div id="sidebar-ayah-nums"></div>
+                    <div class="sb-nav-group">
+                        <label class="sb-nav-label" for="sd-para">পারা</label>
+                        <select class="sb-nav-select" id="sd-para" aria-label="পারা নির্বাচন করুন">
+                            <option value="">— পারা নির্বাচন করুন —</option>
+                        </select>
                     </div>
-                </div>
 
-                <!-- Goto surah:ayah -->
-                <div class="sidebar-goto">
-                    <div class="goto-label">সরাসরি যান</div>
-                    <div class="goto-inputs">
-                        <input type="number" id="goto-surah" min="1" max="114"
-                               placeholder="সূরা" aria-label="সূরা নম্বর">
-                        <span>:</span>
-                        <input type="number" id="goto-ayah" min="1"
-                               placeholder="আয়াত" aria-label="আয়াত নম্বর">
-                        <button type="button" id="goto-btn" aria-label="যান">→</button>
+                    <div class="sb-nav-group">
+                        <label class="sb-nav-label" for="sd-ayah">আয়াত</label>
+                        <select class="sb-nav-select" id="sd-ayah" aria-label="আয়াত নির্বাচন করুন">
+                            <option value="">লোড হচ্ছে…</option>
+                        </select>
                     </div>
-                </div>
 
+                </div>
             </div>
         </aside>
 
@@ -246,6 +228,48 @@
             </div>
 
         </main>
+    </div>
+
+    <!-- =============================================
+         AUDIO PLAYER BAR (fixed bottom)
+         ============================================= -->
+    <div id="audio-player-bar" class="audio-player-bar hidden" role="region" aria-label="অডিও প্লেয়ার">
+        <div class="apb-row1">
+            <div class="apb-info">
+                <div class="apb-title" id="apb-title">—</div>
+            </div>
+            <div class="apb-controls">
+                <button type="button" class="apb-btn" id="apb-prev" title="আগের আয়াত">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <polygon points="19,3 5,12 19,21"/>
+                        <rect x="3" y="3" width="3" height="18"/>
+                    </svg>
+                </button>
+                <button type="button" class="apb-btn apb-main" id="apb-play-pause" title="প্লে/পজ">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" id="apb-play-icon" aria-hidden="true">
+                        <polygon points="5,3 19,12 5,21"/>
+                    </svg>
+                </button>
+                <button type="button" class="apb-btn" id="apb-next" title="পরের আয়াত">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <polygon points="5,3 19,12 5,21"/>
+                        <rect x="18" y="3" width="3" height="18"/>
+                    </svg>
+                </button>
+                <button type="button" class="apb-btn apb-close" id="apb-close" title="বন্ধ করুন" aria-label="প্লেয়ার বন্ধ করুন">✕</button>
+            </div>
+        </div>
+        <div class="apb-row2">
+            <span class="apb-time" id="apb-time-curr">0:00</span>
+            <div class="apb-track">
+                <div class="apb-track-bg"></div>
+                <div class="apb-fill" id="apb-fill" style="width:0%"></div>
+                <input type="range" class="apb-seek" id="apb-seek"
+                       min="0" max="100" value="0" step="0.1"
+                       aria-label="অডিও পজিশন">
+            </div>
+            <span class="apb-time" id="apb-time-dur">0:00</span>
+        </div>
     </div>
 
     <!-- =============================================

@@ -192,13 +192,26 @@ function buildAudioUrl(globalAyahNumber) {
 
 function saveBookmark(surahId, ayahNumberInSurah) {
     try {
-        localStorage.setItem(`quran_bm_${surahId}`, String(ayahNumberInSurah));
+        localStorage.setItem(`quran_bm_${surahId}`, JSON.stringify({
+            ayah: ayahNumberInSurah,
+            ts: Date.now()
+        }));
     } catch { /* ignore */ }
 }
 
+// Returns { ayah, ts } or null. Handles old plain-number format.
 function loadBookmark(surahId) {
-    const v = localStorage.getItem(`quran_bm_${surahId}`);
-    return v ? parseInt(v, 10) : null;
+    try {
+        const raw = localStorage.getItem(`quran_bm_${surahId}`);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'object' && parsed.ayah) return parsed;
+        // Legacy plain number
+        const n = parseInt(raw, 10);
+        return isNaN(n) ? null : { ayah: n, ts: null };
+    } catch {
+        return null;
+    }
 }
 
 function clearBookmark(surahId) {
@@ -211,9 +224,10 @@ function clearBookmark(surahId) {
 
 async function getSurahTransliteration(id) {
     try {
-        return await apiFetch(`tr_${id}`, `${API_BASE}/surah/${id}/bn.transliteration`);
+        // en.transliteration gives romanized Arabic; bn.transliteration does not exist
+        return await apiFetch(`entr_${id}`, `${API_BASE}/surah/${id}/en.transliteration`);
     } catch {
-        return null; // Optional — gracefully skip if edition doesn't exist
+        return null; // Optional — skip if unavailable
     }
 }
 
