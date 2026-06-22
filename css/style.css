@@ -1699,3 +1699,66 @@ body.audio-playing .main-footer { padding-bottom: 72px; }
 .copy-ayah-btn { color: var(--text-m); }
 .copy-ayah-btn:hover { color: var(--accent); }
 .copy-ayah-btn.copied { color: #16A34A; }
+
+/* ============================================================
+   32. ARABIC FONT FAMILY VARIABLE
+   ============================================================ */
+:root { --arabic-font-family: 'Amiri', 'Scheherazade New', serif; }
+
+/* ============================================================
+   33. INLINE LANGUAGE TOGGLE (বাং / EN per ayah translation row)
+   ============================================================ */
+
+/* Body class controls which translation text is visible */
+body.trans-lang-bn .trans-lang-en-text { display: none; }
+body.trans-lang-en .trans-lang-bn-text { display: none; }
+/* Default: show Bengali (no body class = same as trans-lang-bn) */
+body:not(.trans-lang-en) .trans-lang-en-text { display: none; }
+
+.ayah-trans-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0.55rem 0 0;
+}
+.ayah-trans-texts { flex: 1; min-width: 0; }
+.ayah-trans-text {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text-b);
+    transition: color var(--tr-slow);
+}
+[data-theme="dark"] .ayah-trans-text { color: var(--text-b); }
+
+.ayah-lang-toggle {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+.ltg-btn {
+    padding: 2px 7px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-m);
+    font-size: 0.67rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--tr);
+    font-family: inherit;
+}
+.ltg-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Active state via body class */
+body.trans-lang-bn .ltg-btn[data-lang="bn"],
+body.trans-lang-en .ltg-btn[data-lang="en"],
+body:not(.trans-lang-en) .ltg-btn[data-lang="bn"] {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+body.trans-lang-bn .ltg-btn[data-lang="bn"]:hover,
+body.trans-lang-en .ltg-btn[data-lang="en"]:hover,
+body:not(.trans-lang-en) .ltg-btn[data-lang="bn"]:hover { color: #fff; }

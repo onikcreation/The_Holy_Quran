@@ -23,11 +23,13 @@ let fullSurahMode   = false;
 let fullSurahIdx    = 0;
 
 let settings = {
-    translationEdition:  'bn',
+    translationEdition:  'en.sahih',
     showTransliteration: false,
     autoExpandTafsir:    false,
     arabicFont:          'Amiri',
 };
+
+let translationLang = 'bn'; // 'bn' | 'en' — controlled by inline toggle per ayah row
 
 // -------------------------------------------------------
 // Init
@@ -72,6 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.remove('active');
         }
     });
+
+    // Global inline translation lang toggle (event delegation)
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.ltg-btn');
+        if (btn) setTranslationLang(btn.dataset.lang);
+    });
+    setTranslationLang('bn');
 
     // Settings controls
     document.getElementById('translation-select').addEventListener('change', e => {
@@ -145,8 +154,10 @@ function applySettingsUI() {
     const fsel  = document.getElementById('arabic-font-select');
     const trEl  = document.getElementById('toggle-transliteration');
     const taEl  = document.getElementById('toggle-tafsir-auto');
-    if (sel)   sel.value   = settings.translationEdition;
-    if (fsel)  fsel.value  = settings.arabicFont;
+    // Normalise: old 'bn' setting → en.sahih (Bengali now via inline toggle)
+    if (settings.translationEdition === 'bn') settings.translationEdition = 'en.sahih';
+    if (sel)   sel.value    = settings.translationEdition;
+    if (fsel)  fsel.value   = settings.arabicFont;
     if (trEl)  trEl.checked = settings.showTransliteration;
     if (taEl)  taEl.checked = settings.autoExpandTafsir;
 }
@@ -157,6 +168,27 @@ function toggleSettingsPanel() {
     const opening = panel.classList.contains('hidden');
     panel.classList.toggle('hidden', !opening);
     btn.classList.toggle('active', opening);
+}
+
+// -------------------------------------------------------
+// Translation language (inline per-ayah toggle, global state)
+// -------------------------------------------------------
+function setTranslationLang(lang) {
+    translationLang = lang;
+    document.body.classList.toggle('trans-lang-bn', lang === 'bn');
+    document.body.classList.toggle('trans-lang-en', lang === 'en');
+}
+
+// -------------------------------------------------------
+// Bismillah stripping
+// AlQuran Cloud prepends Bismillah text to ayah 1 for surahs 2-8 and 10-114
+// -------------------------------------------------------
+function stripLeadingBismillah(text) {
+    // The Bismillah always ends with الرَّحِيمِ — find that and take text after it
+    const marker = 'الرَّحِيمِ';
+    const idx    = text.indexOf(marker);
+    if (idx !== -1) return text.slice(idx + marker.length).trim();
+    return text;
 }
 
 // -------------------------------------------------------
@@ -389,50 +421,36 @@ function updateHeaderInfo() {
 // -------------------------------------------------------
 // Render ayah cards
 // -------------------------------------------------------
-function getTranslationText(i) {
-    if (settings.translationEdition === 'en.pickthall') return surahData.englishPickthall?.ayahs[i]?.text || '';
-    if (settings.translationEdition === 'en.sahih')     return surahData.englishSahih?.ayahs[i]?.text    || '';
-    return surahData.bengali?.ayahs[i]?.text || '';
-}
-function getEnglishText(i) {
+function getEnglishTransText(i) {
+    if (settings.translationEdition === 'en.pickthall')
+        return surahData.englishPickthall?.ayahs[i]?.text || surahData.englishSahih?.ayahs[i]?.text || '';
     return surahData.englishSahih?.ayahs[i]?.text || '';
-}
-function getBengaliTransText(i) {
-    return surahData.bengali?.ayahs[i]?.text || '';
 }
 
 function renderAyahs() {
-    const list    = document.getElementById('ayah-list');
-    const arAyahs = surahData.arabic.ayahs;
+    const list        = document.getElementById('ayah-list');
+    const arAyahs     = surahData.arabic.ayahs;
     const surahBnName = getBengaliName(currentSurahId);
+    const enName      = surahData.arabic.englishName;
 
     if (currentSurahId !== 1 && currentSurahId !== 9) {
         document.getElementById('bismillah-block')?.classList.remove('hidden');
     }
 
     list.innerHTML = arAyahs.map((ayah, i) => {
-        const transText = getTranslationText(i);
-        const trText    = surahData.transliteration?.ayahs[i]?.text || '';
-        const enText    = getEnglishText(i);
-        const bnText    = getBengaliTransText(i);
-        const bnNum     = toBengaliNumber(ayah.numberInSurah);
-        const isBn      = settings.translationEdition === 'bn';
-        const bracketRef = isBn ? `<span class="ayah-ref"> [${surahBnName}: ${bnNum}]</span>` : '';
-
-        // Tafsir panel — Bengali default, English on toggle
+        const bnText   = surahData.bengali?.ayahs[i]?.text || '';
+        const enText   = getEnglishTransText(i);
+        const trText   = surahData.transliteration?.ayahs[i]?.text || '';
+        const bnTafsir = bnText; // Best available Bengali source
+        const enTafsir = surahData.tafsirJalalayn?.ayahs[i]?.text || enText;
+        const bnNum    = toBengaliNumber(ayah.numberInSurah);
         const tafsirOpen = settings.autoExpandTafsir;
-        const tafsirHtml = (bnText || enText) ? `
-            <div class="tafsir-panel${tafsirOpen ? '' : ' hidden'}" id="tafsir-${ayah.numberInSurah}">
-                <div class="tafsir-header">
-                    <span class="tafsir-heading">তাফসীরঃ</span>
-                    <div class="tl-toggle" role="group" aria-label="তাফসীর ভাষা">
-                        <button type="button" class="tlt-btn active" data-ayah="${ayah.numberInSurah}" data-lang="bn">বাং</button>
-                        <button type="button" class="tlt-btn" data-ayah="${ayah.numberInSurah}" data-lang="en">EN</button>
-                    </div>
-                </div>
-                ${bnText ? `<p class="tafsir-text tafsir-bn">${escapeHtml(bnText)}</p>` : ''}
-                ${enText ? `<p class="tafsir-text tafsir-en hidden">${escapeHtml(enText)}</p>` : ''}
-            </div>` : '';
+
+        // Strip Bismillah prepended by API to first ayah (all surahs except 1 and 9)
+        const arabicText = (ayah.numberInSurah === 1 && currentSurahId !== 1 && currentSurahId !== 9)
+            ? stripLeadingBismillah(ayah.text) : ayah.text;
+
+        const hasTafsir = bnTafsir || enTafsir;
 
         return `
         <div class="ayah-card" id="ayah-${ayah.numberInSurah}"
@@ -440,17 +458,26 @@ function renderAyahs() {
 
             <div class="ayah-top">
                 <div class="ayah-num-circle" aria-label="আয়াত ${ayah.numberInSurah}">${bnNum}</div>
-                <div class="ayah-arabic" lang="ar">${ayah.text}</div>
+                <div class="ayah-arabic" lang="ar">${arabicText}</div>
             </div>
 
             ${trText ? `<div class="ayah-transliteration">${escapeHtml(trText)}</div>` : ''}
 
-            ${transText ? `<div class="ayah-bn-text">
-                ${escapeHtml(transText)}${bracketRef}
+            ${(bnText || enText) ? `
+            <div class="ayah-trans-row">
+                <div class="ayah-trans-texts">
+                    ${bnText ? `<p class="ayah-trans-text trans-lang-bn-text">${escapeHtml(bnText)}<span class="ayah-ref"> [${escapeHtml(surahBnName)}: ${bnNum}]</span></p>` : ''}
+                    ${enText ? `<p class="ayah-trans-text trans-lang-en-text">${escapeHtml(enText)}<span class="ayah-ref"> [${enName}: ${ayah.numberInSurah}]</span></p>` : ''}
+                </div>
+                <div class="ayah-lang-toggle" role="group" aria-label="অনুবাদের ভাষা">
+                    <button type="button" class="ltg-btn" data-lang="bn">বাং</button>
+                    <button type="button" class="ltg-btn" data-lang="en">EN</button>
+                </div>
             </div>` : ''}
 
             <div class="ayah-action-bar" role="toolbar" aria-label="আয়াত ${ayah.numberInSurah} অ্যাকশন">
 
+                ${hasTafsir ? `
                 <button type="button" class="ayah-action-btn tafsir-toggle-btn${tafsirOpen ? ' active' : ''}"
                         data-ayah="${ayah.numberInSurah}" title="তাফসীর দেখুন">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -459,7 +486,7 @@ function renderAyahs() {
                         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                     </svg>
                     তাফসীর
-                </button>
+                </button>` : ''}
 
                 <button type="button" class="ayah-action-btn share-ayah-btn"
                         data-ayah="${ayah.numberInSurah}" title="শেয়ার করুন">
@@ -501,18 +528,21 @@ function renderAyahs() {
 
             </div>
 
-            ${tafsirHtml}
+            ${hasTafsir ? `
+            <div class="tafsir-panel${tafsirOpen ? '' : ' hidden'}" id="tafsir-${ayah.numberInSurah}">
+                ${bnTafsir ? `<p class="tafsir-text trans-lang-bn-text">${escapeHtml(bnTafsir)}</p>` : ''}
+                ${enTafsir ? `<p class="tafsir-text trans-lang-en-text">${escapeHtml(enTafsir)}</p>` : ''}
+            </div>` : ''}
+
         </div>`;
     }).join('');
 
     list.classList.toggle('show-transliteration', settings.showTransliteration);
     applyFontSize();
 
-    // Wire events
+    // Wire events (no .tlt-btn here — ltg-btn is handled globally via delegation)
     list.querySelectorAll('.tafsir-toggle-btn').forEach(btn =>
         btn.addEventListener('click', onTafsirClick));
-    list.querySelectorAll('.tlt-btn').forEach(btn =>
-        btn.addEventListener('click', onTafsirLangToggle));
     list.querySelectorAll('.share-ayah-btn').forEach(btn =>
         btn.addEventListener('click', onShareClick));
     list.querySelectorAll('.copy-ayah-btn').forEach(btn =>
@@ -545,9 +575,11 @@ function renderTilawatPanel() {
     const bismillah = (currentSurahId !== 1 && currentSurahId !== 9)
         ? `<div class="bismillah-arabic" style="text-align:center;margin-bottom:1.1rem">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>`
         : '';
-    const ayahsHtml = arAyahs.map(ayah =>
-        `${ayah.text}<span class="ayah-end-mark" title="আয়াত ${ayah.numberInSurah}"> ۝${toArabicNumeral(ayah.numberInSurah)} </span>`
-    ).join(' ');
+    const stripBis = currentSurahId !== 1 && currentSurahId !== 9;
+    const ayahsHtml = arAyahs.map(ayah => {
+        const txt = (ayah.numberInSurah === 1 && stripBis) ? stripLeadingBismillah(ayah.text) : ayah.text;
+        return `${txt}<span class="ayah-end-mark" title="আয়াত ${ayah.numberInSurah}"> ۝${toArabicNumeral(ayah.numberInSurah)} </span>`;
+    }).join(' ');
     panel.innerHTML = `
         <div class="tilawat-container">
             <div class="tilawat-heading">সূরা ${escapeHtml(surahName)} — সম্পূর্ণ তিলাওয়াত</div>
@@ -569,21 +601,7 @@ function onTafsirClick(e) {
     btn.classList.toggle('active', opening);
 }
 
-// Tafsir language toggle (বাং ↔ EN per panel)
-function onTafsirLangToggle(e) {
-    const btn     = e.currentTarget;
-    const ayahNum = btn.dataset.ayah;
-    const lang    = btn.dataset.lang;
-    const panel   = document.getElementById(`tafsir-${ayahNum}`);
-    if (!panel) return;
 
-    // Toggle active on buttons within this panel
-    panel.querySelectorAll('.tlt-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
-
-    // Show/hide text divs
-    panel.querySelector('.tafsir-bn')?.classList.toggle('hidden', lang !== 'bn');
-    panel.querySelector('.tafsir-en')?.classList.toggle('hidden', lang !== 'en');
-}
 
 // -------------------------------------------------------
 // Share ayah
@@ -591,7 +609,11 @@ function onTafsirLangToggle(e) {
 function buildAyahText(ayahNum) {
     const card      = document.getElementById(`ayah-${ayahNum}`);
     const arabicTxt = card?.querySelector('.ayah-arabic')?.textContent?.trim() || '';
-    const transTxt  = card?.querySelector('.ayah-bn-text')?.textContent?.trim() || '';
+    // Pick visible translation based on current translationLang
+    const transEl  = translationLang === 'bn'
+        ? card?.querySelector('.trans-lang-bn-text')
+        : card?.querySelector('.trans-lang-en-text');
+    const transTxt  = transEl?.textContent?.trim() || '';
     const surahName = getBengaliName(currentSurahId);
     const bnNum     = toBengaliNumber(ayahNum);
     const body      = [arabicTxt, transTxt].filter(Boolean).join('\n\n');

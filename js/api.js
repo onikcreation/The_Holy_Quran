@@ -239,15 +239,24 @@ async function getSurahPickthall(id) {
     }
 }
 
-// Full parallel fetch: Arabic + Bengali + English(sahih) + English(pickthall) + Transliteration
+async function getSurahTafsirJalalayn(id) {
+    try {
+        return await apiFetch(`jaln_${id}`, `${API_BASE}/surah/${id}/en.jalalayn`);
+    } catch {
+        return null;
+    }
+}
+
+// Full parallel fetch: Arabic + Bengali + EnSahih + EnPickthall + Transliteration + TafsirJalalayn
 async function getSurahAllDataFull(id) {
-    const [arabic, bengali, englishSahih, englishPickthall, transliteration] =
+    const [arabic, bengali, englishSahih, englishPickthall, transliteration, tafsirJalalayn] =
         await Promise.allSettled([
             getSurahArabic(id),
             getSurahBengali(id),
             getSurahEnglish(id),
             getSurahPickthall(id),
             getSurahTransliteration(id),
+            getSurahTafsirJalalayn(id),
         ]);
 
     if (arabic.status === 'rejected') {
@@ -260,6 +269,7 @@ async function getSurahAllDataFull(id) {
         englishSahih:     englishSahih.status === 'fulfilled'     ? englishSahih.value     : null,
         englishPickthall: englishPickthall.status === 'fulfilled' ? englishPickthall.value : null,
         transliteration:  transliteration.status === 'fulfilled'  ? transliteration.value  : null,
+        tafsirJalalayn:   tafsirJalalayn.status === 'fulfilled'   ? tafsirJalalayn.value   : null,
     };
 }
 
