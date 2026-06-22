@@ -13,6 +13,7 @@ let currentSurahId  = 1;
 let surahData       = null;
 let currentLang     = 'bn';
 let arabicFontSize  = 30;
+let bengaliFontSize = 15;
 let currentMainTab  = 'translation';
 
 let audioElement    = null;
