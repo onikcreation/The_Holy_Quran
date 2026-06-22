@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // api.js — v1.0
 // AlQuran Cloud API wrapper with localStorage caching
 // API: https://alquran.cloud/api  (free, no key needed)
@@ -239,24 +239,24 @@ async function getSurahPickthall(id) {
     }
 }
 
-async function getSurahTafsirJalalayn(id) {
+async function getSurahTafsirHoque(id) {
     try {
-        return await apiFetch(`jaln_${id}`, `${API_BASE}/surah/${id}/en.jalalayn`);
+        return await apiFetch(`hoque_${id}`, `${API_BASE}/surah/${id}/bn.hoque`);
     } catch {
         return null;
     }
 }
 
-// Full parallel fetch: Arabic + Bengali + EnSahih + EnPickthall + Transliteration + TafsirJalalayn
+// Full parallel fetch: Arabic + Bengali + EnSahih + EnPickthall + Transliteration + TafsirHoque
 async function getSurahAllDataFull(id) {
-    const [arabic, bengali, englishSahih, englishPickthall, transliteration, tafsirJalalayn] =
+    const [arabic, bengali, englishSahih, englishPickthall, transliteration, tafsirHoque] =
         await Promise.allSettled([
             getSurahArabic(id),
             getSurahBengali(id),
             getSurahEnglish(id),
             getSurahPickthall(id),
             getSurahTransliteration(id),
-            getSurahTafsirJalalayn(id),
+            getSurahTafsirHoque(id),
         ]);
 
     if (arabic.status === 'rejected') {
@@ -269,7 +269,7 @@ async function getSurahAllDataFull(id) {
         englishSahih:     englishSahih.status === 'fulfilled'     ? englishSahih.value     : null,
         englishPickthall: englishPickthall.status === 'fulfilled' ? englishPickthall.value : null,
         transliteration:  transliteration.status === 'fulfilled'  ? transliteration.value  : null,
-        tafsirJalalayn:   tafsirJalalayn.status === 'fulfilled'   ? tafsirJalalayn.value   : null,
+        tafsirHoque:      tafsirHoque.status === 'fulfilled'      ? tafsirHoque.value      : null,
     };
 }
 

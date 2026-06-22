@@ -453,8 +453,8 @@ function renderAyahs() {
         const bnText    = surahData.bengali?.ayahs[i]?.text || '';
         const enText    = getEnglishTransText(i);
         const trText    = surahData.transliteration?.ayahs[i]?.text || '';
-        // Tafsir: always English Jalalayn — this is proper tafsir, different from the translation
-        const tafsirTxt = surahData.tafsirJalalayn?.ayahs[i]?.text || '';
+        // Tafsir: Johrul Hoque Bengali translation shown in tafsir panel
+        const tafsirTxt = surahData.tafsirHoque?.ayahs[i]?.text || '';
         const bnNum    = toBengaliNumber(ayah.numberInSurah);
         const tafsirOpen = settings.autoExpandTafsir;
 
@@ -542,7 +542,7 @@ function renderAyahs() {
 
             ${hasTafsir ? `
             <div class="tafsir-panel${tafsirOpen ? '' : ' hidden'}" id="tafsir-${ayah.numberInSurah}">
-                <div class="tafsir-source-label">Tafsir Al-Jalalayn</div>
+                <div class="tafsir-source-label">তাফসীর — জহুরুল হক</div>
                 <p class="tafsir-text">${escapeHtml(tafsirTxt)}</p>
             </div>` : ''}
 
