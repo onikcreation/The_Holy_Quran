@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- index.html — v2.0 | পবিত্র কুরআন — Surah List Page -->
-<html lang="bn" data-theme="light">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -33,10 +33,52 @@
                 </div>
             </div>
             <div class="header-controls">
-                <button id="lang-toggle" class="btn-icon-text" aria-label="ভাষা পরিবর্তন">EN</button>
-                <button id="theme-toggle" class="btn-icon" aria-label="থিম পরিবর্তন">
-                    <span class="theme-icon">🌙</span>
-                </button>
+                <button type="button" id="lang-toggle" class="btn-icon-text" aria-label="ভাষা পরিবর্তন">EN</button>
+
+                <!-- Theme toggle + panel -->
+                <div class="theme-panel-wrap" id="theme-panel-wrap">
+                    <button id="theme-toggle" class="btn-icon" aria-label="থিম পরিবর্তন" title="থিম">🎨</button>
+
+                    <div class="theme-panel" id="themePanel" role="dialog" aria-label="থিম নির্বাচন">
+                        <span class="theme-panel-title">Theme</span>
+                        <div class="theme-opts" role="group" aria-label="প্রিসেট থিম">
+                            <button type="button" class="theme-opt active" data-theme="dark">
+                                <span class="theme-swatch"></span> Dark
+                            </button>
+                            <button type="button" class="theme-opt" data-theme="glass">
+                                <span class="theme-swatch"></span> Glass
+                            </button>
+                            <button type="button" class="theme-opt" data-theme="light">
+                                <span class="theme-swatch"></span> Light
+                            </button>
+                            <button type="button" class="theme-opt" data-theme="purple">
+                                <span class="theme-swatch"></span> Purple
+                            </button>
+                            <button type="button" class="theme-opt" data-theme="cyber">
+                                <span class="theme-swatch"></span> Cyber
+                            </button>
+                        </div>
+
+                        <div class="cp-section">
+                            <span class="theme-panel-title">Custom Colors</span>
+                            <div class="cp-row">
+                                <div class="cp-item">
+                                    <input type="color" id="cpAccent" title="Primary Color">
+                                    <span>Primary</span>
+                                </div>
+                                <div class="cp-item">
+                                    <input type="color" id="cpAccent2" title="Secondary Color">
+                                    <span>Secondary</span>
+                                </div>
+                                <div class="cp-item">
+                                    <input type="color" id="cpBg" title="Background Color">
+                                    <span>Background</span>
+                                </div>
+                            </div>
+                            <button type="button" class="cp-reset" id="cpReset">&#8635; Reset Colors</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </header>

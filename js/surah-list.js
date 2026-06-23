@@ -18,7 +18,7 @@ let searchTimer   = null;
 // -------------------------------------------------------
 let surahGrid, loadingState, errorState, noResults;
 let searchInput, searchClear, searchCount;
-let langToggle, themeToggle, retryBtn, errorMsg;
+let langToggle, retryBtn, errorMsg;
 
 // -------------------------------------------------------
 // Boot
@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
     searchClear  = document.getElementById('search-clear');
     searchCount  = document.getElementById('search-count');
     langToggle   = document.getElementById('lang-toggle');
-    themeToggle  = document.getElementById('theme-toggle');
     retryBtn     = document.getElementById('retry-btn');
     errorMsg     = document.getElementById('error-msg');
     initTheme();
@@ -45,28 +44,97 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput.addEventListener('input',  onSearchInput);
     searchClear.addEventListener('click',  clearSearch);
     langToggle.addEventListener('click',   toggleLanguage);
-    themeToggle.addEventListener('click',  toggleTheme);
     retryBtn.addEventListener('click',     loadSurahs);
 });
 
 // -------------------------------------------------------
-// Theme
+// Theme System  (5 presets + custom color pickers)
 // -------------------------------------------------------
+const CP_VARS = { '--accent': 'cpAccent', '--accent-2': 'cpAccent2', '--bg': 'cpBg' };
+
 function initTheme() {
-    const saved = localStorage.getItem('quran_theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setTheme(saved || (prefersDark ? 'dark' : 'light'));
-}
-function setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    if (themeToggle) {
-        themeToggle.querySelector('.theme-icon').textContent = theme === 'dark' ? '☀️' : '🌙';
+    const saved = localStorage.getItem('site-theme') || 'dark';
+    applyTheme(saved, false);
+
+    Object.keys(CP_VARS).forEach(function(prop) {
+        const val = localStorage.getItem('cp-' + prop);
+        if (val) document.documentElement.style.setProperty(prop, val);
+    });
+    syncColorInputs();
+
+    const toggleBtn = document.getElementById('theme-toggle');
+    const panel     = document.getElementById('themePanel');
+    const wrap      = document.getElementById('theme-panel-wrap');
+
+    toggleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        panel.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+        if (wrap && !wrap.contains(e.target)) panel.classList.remove('open');
+    });
+
+    document.querySelectorAll('.theme-opt').forEach(function(opt) {
+        opt.addEventListener('click', function() {
+            applyTheme(opt.dataset.theme, true);
+            panel.classList.remove('open');
+        });
+    });
+
+    Object.entries(CP_VARS).forEach(function(entry) {
+        const prop = entry[0];
+        const id   = entry[1];
+        const el   = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', function() {
+            document.documentElement.style.setProperty(prop, el.value);
+            localStorage.setItem('cp-' + prop, el.value);
+        });
+    });
+
+    const resetBtn = document.getElementById('cpReset');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            Object.keys(CP_VARS).forEach(function(prop) {
+                document.documentElement.style.removeProperty(prop);
+                localStorage.removeItem('cp-' + prop);
+            });
+            syncColorInputs();
+        });
     }
 }
-function toggleTheme() {
-    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    localStorage.setItem('quran_theme', next);
+
+function applyTheme(theme, save) {
+    if (theme === 'dark') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('.theme-opt').forEach(function(o) {
+        o.classList.toggle('active', o.dataset.theme === theme);
+    });
+    if (save) localStorage.setItem('site-theme', theme);
+}
+
+function syncColorInputs() {
+    requestAnimationFrame(function() {
+        const style = getComputedStyle(document.documentElement);
+        Object.entries(CP_VARS).forEach(function(entry) {
+            const prop = entry[0];
+            const id   = entry[1];
+            const el   = document.getElementById(id);
+            if (!el) return;
+            const raw = style.getPropertyValue(prop).trim();
+            const hex = cssColorToHex(raw);
+            if (hex) el.value = hex;
+        });
+    });
+}
+
+function cssColorToHex(color) {
+    if (/^#[0-9a-f]{6}$/i.test(color)) return color;
+    const m = color.match(/rgb\(\s*(\d+),\s*(\d+),\s*(\d+)\)/);
+    if (!m) return null;
+    return '#' + [m[1], m[2], m[3]].map(function(n) {
+        return parseInt(n, 10).toString(16).padStart(2, '0');
+    }).join('');
 }
 
 // -------------------------------------------------------

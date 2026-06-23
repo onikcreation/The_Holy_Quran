@@ -16,68 +16,75 @@
 }
 
 /* ============================================================
-   1. CSS VARIABLES
+   1. CSS VARIABLES  — Theme System (5 themes)
+   Default = Dark (no data-theme attribute)
    ============================================================ */
 :root {
-    /* Tailwind Green palette (primary: green-600 = #16A34A) */
-    --g900: #14532D;
-    --g800: #166534;
-    --g700: #15803D;
-    --g500: #22C55E;
-    --g300: #86EFAC;
-    --g200: #BBF7D0;
-    --g100: #DCFCE7;
-    --g50:  #F0FDF4;
-    --g30:  #F7FFFE;
+    /* ── Core theme tokens ── */
+    --accent:       #9B59E8;
+    --accent-dark:  #7c3aed;
+    --accent-2:     #E31E24;
+    --accent-glow:  rgba(155,89,232,0.28);
 
-    /* Page */
-    --bg-page:    #F0FDF4;
-    --bg-card:    #FFFFFF;
-    --bg-header:  #FFFFFF;
-    --bg-hero:    #052E16;
+    --bg:           #0a0a0f;
+    --bg-card:      #111118;
+    --bg-elevated:  #1a1a24;
+    --bg-border:    rgba(255,255,255,0.08);
 
-    /* Text — Tailwind Gray */
-    --text-h:  #1F2937;
-    --text-b:  #374151;
-    --text-m:  #6B7280;
-    --text-sm: #9CA3AF;
+    --text:         #e8e8f0;
+    --text-muted:   #7878a0;
 
-    /* Accent — Tailwind green-600 */
-    --accent:       #16A34A;
-    --accent-hover: #15803D;
-    --accent-light: #F0FDF4;
-    --accent-text:  #FFFFFF;
+    /* ── Legacy aliases — existing rules unchanged ── */
+    --bg-page:    var(--bg);
+    --bg-header:  var(--bg-elevated);
+    --bg-hero:    var(--bg-card);
 
-    /* Tags */
-    --mekki-bg:     #DCFCE7;
-    --mekki-text:   #166534;
-    --mekki-border: #86EFAC;
-    --madani-bg:    #EFF6FF;
-    --madani-text:  #1D4ED8;
-    --madani-border:#BFDBFE;
+    --text-h:  var(--text);
+    --text-b:  var(--text);
+    --text-m:  var(--text-muted);
+    --text-sm: var(--text-muted);
 
-    /* Borders & shadows */
-    --border:            #DCFCE7;
-    --border-focus:      #16A34A;
-    --shadow-card:       0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(22,163,74,0.06);
-    --shadow-card-hover: 0 6px 20px rgba(22,163,74,0.15), 0 2px 6px rgba(0,0,0,0.06);
-    --shadow-sm:         0 1px 3px rgba(0,0,0,0.07);
+    --accent-hover: var(--accent-dark);
+    --accent-light: rgba(155,89,232,0.12);
+    --accent-text:  #ffffff;
 
-    /* Skeleton */
-    --sk-base:  #DCFCE7;
-    --sk-shine: #F0FDF4;
+    --border:       var(--bg-border);
+    --border-focus: var(--accent);
 
-    /* Transitions */
+    --shadow-card:       0 2px 12px rgba(0,0,0,0.55);
+    --shadow-card-hover: 0 8px 28px rgba(0,0,0,0.75);
+    --shadow-sm:         0 1px 4px rgba(0,0,0,0.4);
+
+    /* ── g-palette (purple tones for dark theme) ── */
+    --g900: #1e0b3e;
+    --g800: #2d1260;
+    --g700: #3d1a80;
+    --g500: #7c3aed;
+    --g300: #c4a4f5;
+    --g200: #d9c2fc;
+    --g100: #ede5ff;
+    --g50:  #f5f0ff;
+    --g30:  #faf8ff;
+
+    /* ── Skeleton ── */
+    --sk-base:  #1a1a24;
+    --sk-shine: #252530;
+
+    /* ── Tags ── */
+    --mekki-bg:     rgba(155,89,232,0.12);
+    --mekki-text:   #c4a4f5;
+    --mekki-border: rgba(155,89,232,0.35);
+    --madani-bg:    rgba(56,189,248,0.12);
+    --madani-text:  #7dd3f8;
+    --madani-border:rgba(56,189,248,0.35);
+
+    /* ── Unchanged ── */
     --tr:      0.18s ease;
     --tr-slow: 0.3s ease;
-
-    /* Radius */
     --r-sm:   6px;
     --r-md:   10px;
     --r-lg:   14px;
     --r-full: 9999px;
-
-    /* Arabic */
     --arabic-sm: 24px;
     --arabic-md: 30px;
     --arabic-lg: 38px;
@@ -86,35 +93,92 @@
     --trans-size: 15px;
 }
 
-/* Dark theme */
-[data-theme="dark"] {
-    --bg-page:    #052E16;
-    --bg-card:    #14532D;
-    --bg-header:  #166534;
-    --bg-hero:    #022C16;
-    --text-h:     #F0FDF4;
-    --text-b:     #BBF7D0;
-    --text-m:     #86EFAC;
-    --text-sm:    #4ADE80;
-    --accent:     #22C55E;
-    --accent-hover:#16A34A;
-    --accent-light:#14532D;
-    --border:     #166534;
-    --g50:        #14532D;
-    --g100:       #15803D;
-    --g200:       #16A34A;
-    --g300:       #22C55E;
-    --g900:       #F0FDF4;
-    --shadow-card:       0 1px 4px rgba(0,0,0,0.5);
-    --shadow-card-hover: 0 6px 20px rgba(0,0,0,0.6);
-    --sk-base:    #166534;
-    --sk-shine:   #15803D;
-    --mekki-bg:   #052E16;
-    --mekki-text: #86EFAC;
-    --mekki-border: #22C55E;
-    --madani-bg:  #1E3A5E;
-    --madani-text:#BFDBFE;
-    --madani-border: #60A5FA;
+/* ── Glass ── */
+html[data-theme="glass"] {
+    --accent:       #38bdf8;
+    --accent-dark:  #0ea5e9;
+    --accent-2:     #e879f9;
+    --accent-glow:  rgba(56,189,248,0.25);
+    --bg:           #0f1a3e;
+    --bg-card:      #162044;
+    --bg-elevated:  #1e2d52;
+    --bg-border:    rgba(255,255,255,0.1);
+    --text:         #e2eeff;
+    --text-muted:   #7898cc;
+    --accent-light: rgba(56,189,248,0.12);
+    --g900: #061228; --g800: #0d1e42; --g700: #162a58;
+    --g500: #38bdf8; --g300: #7dd3fb; --g200: #bae6fd;
+    --g100: #e0f2fe; --g50:  #f0f9ff; --g30:  #f8fcff;
+    --sk-base: #1e2d52; --sk-shine: #263a68;
+    --mekki-bg: rgba(56,189,248,0.12); --mekki-text: #7dd3fb; --mekki-border: rgba(56,189,248,0.3);
+    --madani-bg: rgba(232,121,249,0.12); --madani-text: #f0a8fc; --madani-border: rgba(232,121,249,0.3);
+}
+
+/* ── Light ── */
+html[data-theme="light"] {
+    --accent:       #6366f1;
+    --accent-dark:  #4f46e5;
+    --accent-2:     #ec4899;
+    --accent-glow:  rgba(99,102,241,0.2);
+    --bg:           #f2f2f8;
+    --bg-card:      #ffffff;
+    --bg-elevated:  #ffffff;
+    --bg-border:    rgba(0,0,0,0.1);
+    --text:         #1e1e2e;
+    --text-muted:   #6b6b8a;
+    --accent-light: rgba(99,102,241,0.1);
+    --shadow-card:       0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(99,102,241,0.08);
+    --shadow-card-hover: 0 6px 20px rgba(99,102,241,0.18);
+    --shadow-sm:         0 1px 3px rgba(0,0,0,0.07);
+    --g900: #1e1b4b; --g800: #3730a3; --g700: #4338ca;
+    --g500: #6366f1; --g300: #a5b4fc; --g200: #c7d2fe;
+    --g100: #e0e7ff; --g50:  #eef2ff; --g30:  #f5f7ff;
+    --sk-base: #e0e0ee; --sk-shine: #f0f0f8;
+    --mekki-bg: rgba(99,102,241,0.08); --mekki-text: #4338ca; --mekki-border: rgba(99,102,241,0.25);
+    --madani-bg: rgba(236,72,153,0.08); --madani-text: #be185d; --madani-border: rgba(236,72,153,0.25);
+}
+
+/* ── Purple ── */
+html[data-theme="purple"] {
+    --accent:       #d946ef;
+    --accent-dark:  #c026d3;
+    --accent-2:     #f43f5e;
+    --accent-glow:  rgba(217,70,239,0.28);
+    --bg:           #0d0520;
+    --bg-card:      #150a2e;
+    --bg-elevated:  #1e1040;
+    --bg-border:    rgba(255,255,255,0.08);
+    --text:         #f0e8ff;
+    --text-muted:   #9878b8;
+    --accent-light: rgba(217,70,239,0.12);
+    --g900: #0a0318; --g800: #150a2e; --g700: #1e1040;
+    --g500: #c026d3; --g300: #e879f9; --g200: #f0abfc;
+    --g100: #fae8ff; --g50:  #fdf4ff; --g30:  #fefaff;
+    --sk-base: #1e1040; --sk-shine: #281450;
+    --mekki-bg: rgba(217,70,239,0.12); --mekki-text: #e879f9; --mekki-border: rgba(217,70,239,0.3);
+    --madani-bg: rgba(244,63,94,0.12); --madani-text: #fb7185; --madani-border: rgba(244,63,94,0.3);
+}
+
+/* ── Cyber ── */
+html[data-theme="cyber"] {
+    --accent:       #00ff9f;
+    --accent-dark:  #00cc7e;
+    --accent-2:     #ff3e6c;
+    --accent-glow:  rgba(0,255,159,0.25);
+    --bg:           #050508;
+    --bg-card:      #0d0d14;
+    --bg-elevated:  #151520;
+    --bg-border:    rgba(0,255,159,0.1);
+    --text:         #e0ffe8;
+    --text-muted:   #60a880;
+    --accent-light: rgba(0,255,159,0.1);
+    --accent-text:  #000000;
+    --g900: #001a0d; --g800: #003318; --g700: #004d24;
+    --g500: #00cc7e; --g300: #00ff9f; --g200: #80ffcf;
+    --g100: #ccffe8; --g50:  #e6fff3; --g30:  #f0fff8;
+    --sk-base: #151520; --sk-shine: #1e1e30;
+    --mekki-bg: rgba(0,255,159,0.1); --mekki-text: #00cc7e; --mekki-border: rgba(0,255,159,0.25);
+    --madani-bg: rgba(255,62,108,0.1); --madani-text: #ff6b8a; --madani-border: rgba(255,62,108,0.25);
 }
 
 /* ============================================================
@@ -834,9 +898,7 @@ input  { font-family: inherit; }
     border-left: 3px solid var(--accent);
     padding-left: calc(0.6rem - 3px);
 }
-.sbl-item.active .sbl-name { color: var(--g800); font-weight: 700; }
-[data-theme="dark"] .sbl-item.active { background: var(--g50); }
-[data-theme="dark"] .sbl-item.active .sbl-name { color: var(--g300); }
+.sbl-item.active .sbl-name { color: var(--accent); font-weight: 700; }
 .sbl-num {
     font-size: 0.68rem; color: var(--text-sm);
     min-width: 18px; text-align: right; flex-shrink: 0;
@@ -896,17 +958,17 @@ input  { font-family: inherit; }
 .bookmark-inner {
     display: flex; align-items: center; gap: 0.65rem;
     padding: 0.65rem 0.875rem;
-    background: #FFFDE7;
-    border: 1px solid #FDD835;
+    background: #1A1500;
+    border: 1px solid #5D4037;
     border-radius: var(--r-md);
-    color: #5D4037;
+    color: #FDD835;
     font-size: 0.85rem; font-weight: 500;
     transition: background var(--tr-slow);
 }
-[data-theme="dark"] .bookmark-inner {
-    background: #1A1500;
-    border-color: #5D4037;
-    color: #FDD835;
+html[data-theme="light"] .bookmark-inner {
+    background: #FFFDE7;
+    border-color: #FDD835;
+    color: #5D4037;
 }
 .bookmark-icon { flex-shrink: 0; }
 .bookmark-text { flex: 1; font-family: 'Noto Sans Bengali', sans-serif; }
@@ -994,11 +1056,10 @@ input  { font-family: inherit; }
 }
 .bismillah-arabic {
     font-family: var(--arabic-font-family);
-    font-size: 1.85rem; color: var(--g800);
+    font-size: 1.85rem; color: var(--accent);
     direction: rtl; line-height: 2;
     transition: color var(--tr-slow);
 }
-[data-theme="dark"] .bismillah-arabic { color: var(--g300); }
 .bismillah-bn {
     font-size: 0.85rem; color: var(--text-m);
     font-family: 'Noto Sans Bengali', sans-serif;
@@ -1038,10 +1099,7 @@ input  { font-family: inherit; }
     display: flex; align-items: center; justify-content: center;
     font-family: 'Noto Sans Bengali', sans-serif;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(22,163,74,0.3);
-}
-[data-theme="dark"] .ayah-num-badge {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    box-shadow: 0 2px 8px var(--accent-glow);
 }
 
 /* Arabic text: full width, centered */
@@ -1077,11 +1135,10 @@ input  { font-family: inherit; }
     transition: color var(--tr-slow), border-color var(--tr-slow);
 }
 .ayah-ref {
-    font-size: 0.8em; color: var(--g700); font-weight: 600;
+    font-size: 0.8em; color: var(--text-muted); font-weight: 600;
     margin-left: 0.25em; white-space: nowrap;
     font-family: 'Noto Sans Bengali', sans-serif;
 }
-[data-theme="dark"] .ayah-ref { color: var(--g300); }
 
 /* Action bar */
 .ayah-action-bar {
@@ -1144,25 +1201,25 @@ input  { font-family: inherit; }
 .tafsir-panel {
     margin-top: 0.6rem;
     padding: 0.8rem 0.9rem;
-    background: #FFFDE7;
-    border: 1px solid #EDD57A;
+    background: #1A1500;
+    border: 1px solid #4A3500;
     border-radius: var(--r-md);
-    border-left: 3px solid #D4A017;
+    border-left: 3px solid #B8860B;
     transition: background var(--tr-slow), border-color var(--tr-slow);
 }
-[data-theme="dark"] .tafsir-panel {
-    background: #1A1500;
-    border-color: #4A3500;
-    border-left-color: #B8860B;
+html[data-theme="light"] .tafsir-panel {
+    background: #FFFDE7;
+    border-color: #EDD57A;
+    border-left-color: #D4A017;
 }
 .tafsir-heading {
     font-size: 0.8rem; font-weight: 700;
-    color: #8B6914;
+    color: #D4A017;
     font-family: 'Noto Sans Bengali', sans-serif;
     margin-bottom: 0.3rem;
     text-align: center;
 }
-[data-theme="dark"] .tafsir-heading { color: #D4A017; }
+html[data-theme="light"] .tafsir-heading { color: #8B6914; }
 .tafsir-text {
     font-family: 'Noto Sans Bengali', 'Inter', sans-serif;
     font-size: var(--trans-size); line-height: 1.85;
@@ -1829,7 +1886,6 @@ body:not(.trans-lang-en) .trans-lang-en-text { display: none; }
     text-align: center;
     transition: color var(--tr-slow);
 }
-[data-theme="dark"] .ayah-trans-text { color: var(--text-b); }
 
 .ayah-lang-toggle {
     display: flex;
@@ -1873,4 +1929,137 @@ body:not(.trans-lang-en) .ltg-btn[data-lang="bn"]:hover { color: #fff; }
     margin-bottom: 0.3rem;
     opacity: 0.75;
     text-align: center;
+}
+
+/* ============================================================
+   35. THEME PANEL
+   ============================================================ */
+.theme-panel-wrap {
+    position: relative;
+}
+.theme-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 210px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--bg-border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-card-hover), 0 0 0 1px rgba(255,255,255,0.04);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    padding: 0.875rem;
+    z-index: 400;
+    display: none;
+    animation: tpFadeIn 0.15s ease;
+}
+.theme-panel.open { display: block; }
+@keyframes tpFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.theme-panel-title {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+}
+.theme-opts {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 0.75rem;
+}
+.theme-opt {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.38rem 0.6rem;
+    border-radius: var(--r-md);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-m);
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    cursor: pointer;
+    transition: background var(--tr), border-color var(--tr), color var(--tr);
+    text-align: left;
+    width: 100%;
+}
+.theme-opt:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: rgba(155,89,232,0.3);
+}
+.theme-opt.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
+    font-weight: 700;
+}
+.theme-swatch {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(255,255,255,0.2);
+}
+/* Swatch colors — keyed to button's data-theme (always fixed) */
+.theme-opt[data-theme="dark"]   .theme-swatch { background: #9B59E8; }
+.theme-opt[data-theme="glass"]  .theme-swatch { background: #38bdf8; }
+.theme-opt[data-theme="light"]  .theme-swatch { background: #6366f1; }
+.theme-opt[data-theme="purple"] .theme-swatch { background: #d946ef; }
+.theme-opt[data-theme="cyber"]  .theme-swatch { background: #00ff9f; }
+
+/* Custom color pickers */
+.cp-section {
+    border-top: 1px solid var(--bg-border);
+    padding-top: 0.7rem;
+}
+.cp-row {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.55rem;
+}
+.cp-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+.cp-item input[type="color"] {
+    width: 38px;
+    height: 26px;
+    border: 1.5px solid var(--bg-border);
+    border-radius: var(--r-sm);
+    background: var(--bg-card);
+    cursor: pointer;
+    padding: 2px 3px;
+}
+.cp-item span {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    font-family: 'Noto Sans Bengali', sans-serif;
+}
+.cp-reset {
+    width: 100%;
+    padding: 0.3rem;
+    border-radius: var(--r-md);
+    border: 1px solid var(--bg-border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-family: 'Noto Sans Bengali', sans-serif;
+    cursor: pointer;
+    transition: background var(--tr), color var(--tr), border-color var(--tr);
+}
+.cp-reset:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-color: var(--accent);
 }
