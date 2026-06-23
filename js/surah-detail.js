@@ -486,6 +486,10 @@ function renderAyahs() {
 
             <div class="ayah-card-header">
                 <div class="ayah-num-badge" aria-label="আয়াত ${ayah.numberInSurah}">${bnNum}</div>
+                <div class="ayah-lang-toggle" role="group" aria-label="অনুবাদের ভাষা">
+                    <button type="button" class="ltg-btn" data-lang="bn">বাং</button>
+                    <button type="button" class="ltg-btn" data-lang="en">EN</button>
+                </div>
             </div>
 
             <div class="ayah-arabic" lang="ar">${arabicText}</div>
@@ -500,11 +504,9 @@ function renderAyahs() {
                     ${bnText ? `<p class="ayah-trans-text trans-lang-bn-text">${escapeHtml(bnText)}<span class="ayah-ref"> [${escapeHtml(surahBnName)}: ${bnNum}]</span></p>` : ''}
                     ${enText ? `<p class="ayah-trans-text trans-lang-en-text">${escapeHtml(enText)}<span class="ayah-ref"> [${enName}: ${ayah.numberInSurah}]</span></p>` : ''}
                 </div>
-                <div class="ayah-lang-toggle" role="group" aria-label="অনুবাদের ভাষা">
-                    <button type="button" class="ltg-btn" data-lang="bn">বাং</button>
-                    <button type="button" class="ltg-btn" data-lang="en">EN</button>
-                </div>
             </div>` : ''}
+
+            <div class="ayah-divider"></div>
 
             <div class="ayah-action-bar" role="toolbar" aria-label="আয়াত ${ayah.numberInSurah} অ্যাকশন">
 

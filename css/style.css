@@ -1818,13 +1818,9 @@ body.trans-lang-en .trans-lang-bn-text { display: none; }
 body:not(.trans-lang-en) .trans-lang-en-text { display: none; }
 
 .ayah-trans-row {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.45rem;
     margin: 0.55rem 0 0;
 }
-.ayah-trans-texts { width: 100%; order: 2; }
+.ayah-trans-texts { width: 100%; }
 .ayah-trans-text {
     margin: 0;
     font-size: var(--trans-size);
@@ -1838,8 +1834,6 @@ body:not(.trans-lang-en) .trans-lang-en-text { display: none; }
 .ayah-lang-toggle {
     display: flex;
     gap: 3px;
-    order: 1;
-    justify-content: center;
 }
 .ltg-btn {
     padding: 2px 7px;
