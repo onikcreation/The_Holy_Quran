@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentSurahId = Math.min(114, Math.max(1, parseInt(params.get('id'), 10) || 1));
     const jumpAyah = parseInt(params.get('ayah'), 10) || null;
 
-    currentLang    = localStorage.getItem('quran_lang')      || 'bn';
+    currentLang    = 'bn';
     arabicFontSize  = parseInt(localStorage.getItem('quran_font_size'), 10)    || 30;
     bengaliFontSize = parseInt(localStorage.getItem('quran_bn_font_size'), 10) || 15;
     loadSettings();
@@ -54,14 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
     audioElement.addEventListener('play',          updateAudioPlayerUI);
 
     initTheme();
-    applyLanguage();
     updateNavButtons();
     applySettingsUI();
     applyArabicFont();
     applyBnFontSize();
 
     // Header controls
-    document.getElementById('lang-toggle').addEventListener('click', toggleLanguage);
     document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
     document.getElementById('font-decrease').addEventListener('click', () => changeFontSize(-1));
     document.getElementById('font-increase').addEventListener('click', () => changeFontSize(1));
