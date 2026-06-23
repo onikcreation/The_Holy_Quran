@@ -215,7 +215,7 @@ function applyArabicFont() {
 const CP_VARS = { '--accent': 'cpAccent', '--accent-2': 'cpAccent2', '--bg': 'cpBg' };
 
 function initTheme() {
-    const saved = localStorage.getItem('site-theme') || 'dark';
+    const saved = localStorage.getItem('site-theme') || 'light';
     applyTheme(saved, false);
 
     // Restore any saved custom colors
@@ -498,19 +498,15 @@ function updateHeaderInfo() {
     if (!header) return;
     header.innerHTML = `
         <div class="sih-inner">
-            <div class="sih-left">
-                <div class="sih-title">
-                    সূরা ${escapeHtml(displayName)}
-                    <span class="sih-arabic-inline">${s.name}</span>
-                </div>
-                <div class="sih-meaning">${escapeHtml(displayMeaning)}</div>
-                <div class="sih-tags">
-                    <span class="sih-tag">${revLabel}</span>
-                    <span class="sih-tag">${ayahLabel}</span>
-                    <span class="sih-tag">${toBengaliNumber(s.number)} / ${toBengaliNumber(114)}</span>
-                </div>
+            <div class="sih-arabic-name" lang="ar">${s.name}</div>
+            <div class="sih-title">সূরা ${escapeHtml(displayName)}</div>
+            <div class="sih-meaning">${escapeHtml(displayMeaning)}</div>
+            <div class="sih-tags">
+                <span class="sih-tag">${revLabel}</span>
+                <span class="sih-tag">${ayahLabel}</span>
+                <span class="sih-tag">${toBengaliNumber(s.number)} / ১১৪</span>
             </div>
-            <div class="sih-right">
+            <div class="sih-audio-row">
                 <button type="button" class="full-audio-btn" id="full-audio-btn"
                         aria-label="পুরো সূরা তিলাওয়াত">▶ পুরো সূরা</button>
                 <div class="full-audio-progress" id="full-audio-progress"></div>

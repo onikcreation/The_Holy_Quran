@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
     searchInput  = document.getElementById('search-input');
     searchClear  = document.getElementById('search-clear');
     searchCount  = document.getElementById('search-count');
-    langToggle   = document.getElementById('lang-toggle');
     retryBtn     = document.getElementById('retry-btn');
     errorMsg     = document.getElementById('error-msg');
     initTheme();
@@ -40,10 +39,28 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSkeletons(12);
     loadSurahs();
 
+    // Settings panel toggle
+    const settingsBtn   = document.getElementById('settings-btn');
+    const settingsPanel = document.getElementById('settings-panel');
+    if (settingsBtn && settingsPanel) {
+        settingsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            settingsPanel.classList.toggle('hidden');
+        });
+        document.addEventListener('click', function(e) {
+            if (!settingsPanel.contains(e.target) && e.target !== settingsBtn) {
+                settingsPanel.classList.add('hidden');
+            }
+        });
+    }
+
+    // Lang toggle (now inside settings panel)
+    langToggle = document.getElementById('lang-toggle');
+    if (langToggle) langToggle.addEventListener('click', toggleLanguage);
+
     // Events
     searchInput.addEventListener('input',  onSearchInput);
     searchClear.addEventListener('click',  clearSearch);
-    langToggle.addEventListener('click',   toggleLanguage);
     retryBtn.addEventListener('click',     loadSurahs);
 });
 
@@ -53,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const CP_VARS = { '--accent': 'cpAccent', '--accent-2': 'cpAccent2', '--bg': 'cpBg' };
 
 function initTheme() {
-    const saved = localStorage.getItem('site-theme') || 'dark';
+    const saved = localStorage.getItem('site-theme') || 'light';
     applyTheme(saved, false);
 
     Object.keys(CP_VARS).forEach(function(prop) {
@@ -141,8 +158,11 @@ function cssColorToHex(color) {
 // Language
 // -------------------------------------------------------
 function applyLanguage() {
-    langToggle.textContent = currentLang === 'bn' ? 'EN' : 'বাং';
-    langToggle.title       = currentLang === 'bn' ? 'Switch to English' : 'বাংলায় পরিবর্তন';
+    langToggle = langToggle || document.getElementById('lang-toggle');
+    if (langToggle) {
+        langToggle.textContent = currentLang === 'bn' ? 'EN' : 'বাং';
+        langToggle.title       = currentLang === 'bn' ? 'Switch to English' : 'বাংলায় পরিবর্তন';
+    }
 
     // Swap all [data-bn] / [data-en] elements
     document.querySelectorAll('[data-bn]').forEach(el => {

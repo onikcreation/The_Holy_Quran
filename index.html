@@ -33,23 +33,24 @@
                 </div>
             </div>
             <div class="header-controls">
-                <button type="button" id="lang-toggle" class="btn-icon-text" aria-label="ভাষা পরিবর্তন">EN</button>
+                <button type="button" class="settings-btn" id="settings-btn"
+                        aria-label="সেটিংস" title="সেটিংস">⚙</button>
 
                 <!-- Theme toggle + panel -->
                 <div class="theme-panel-wrap" id="theme-panel-wrap">
-                    <button id="theme-toggle" class="btn-icon" aria-label="থিম পরিবর্তন" title="থিম">🎨</button>
+                    <button type="button" id="theme-toggle" class="btn-icon" aria-label="থিম পরিবর্তন" title="থিম">🎨</button>
 
                     <div class="theme-panel" id="themePanel" role="dialog" aria-label="থিম নির্বাচন">
                         <span class="theme-panel-title">Theme</span>
                         <div class="theme-opts" role="group" aria-label="প্রিসেট থিম">
-                            <button type="button" class="theme-opt active" data-theme="dark">
+                            <button type="button" class="theme-opt active" data-theme="light">
+                                <span class="theme-swatch"></span> Light
+                            </button>
+                            <button type="button" class="theme-opt" data-theme="dark">
                                 <span class="theme-swatch"></span> Dark
                             </button>
                             <button type="button" class="theme-opt" data-theme="glass">
                                 <span class="theme-swatch"></span> Glass
-                            </button>
-                            <button type="button" class="theme-opt" data-theme="light">
-                                <span class="theme-swatch"></span> Light
                             </button>
                             <button type="button" class="theme-opt" data-theme="purple">
                                 <span class="theme-swatch"></span> Purple
@@ -82,6 +83,20 @@
             </div>
         </div>
     </header>
+
+    <!-- =============================================
+         SETTINGS PANEL  (list page)
+         ============================================= -->
+    <div class="settings-panel hidden" id="settings-panel" role="dialog" aria-label="সেটিংস">
+        <div class="settings-header">সেটিংস ⚙</div>
+        <div class="settings-section">
+            <label class="settings-label">সূরার নাম ভাষা</label>
+            <div class="font-size-row">
+                <button type="button" id="lang-toggle"
+                        class="btn-icon-text" aria-label="ভাষা পরিবর্তন">EN</button>
+            </div>
+        </div>
+    </div>
 
     <!-- =============================================
          HERO SECTION  (banner + search)
